@@ -445,11 +445,20 @@ TOOL_HANDLERS = {
 
 
 
+WEBHOOK_LOGS = []
+
+@app.get("/logs")
+def get_logs():
+    return {"logs": WEBHOOK_LOGS}
+
 @app.post("/vapi/tools")
 async def vapi_tools(request: Request, db: Session = Depends(get_db), _auth=Depends(verify_vapi_request)):
     try:
-        payload = await request.json()
-    except json.JSONDecodeError:
+        raw_body = await request.body()
+        WEBHOOK_LOGS.append(raw_body.decode("utf-8"))
+        if len(WEBHOOK_LOGS) > 10: WEBHOOK_LOGS.pop(0)
+        payload = json.loads(raw_body)
+    except Exception:
         return {"results": []}
 
     session_id = get_session_id(payload)
@@ -585,7 +594,10 @@ async def call_tool_route(
     body = {}
     if request.method == "POST":
         try:
-            body = await request.json()
+            raw_body = await request.body()
+            WEBHOOK_LOGS.append(f"/{tool_name} " + raw_body.decode("utf-8"))
+            if len(WEBHOOK_LOGS) > 10: WEBHOOK_LOGS.pop(0)
+            body = json.loads(raw_body)
         except Exception:
             body = {}
 
