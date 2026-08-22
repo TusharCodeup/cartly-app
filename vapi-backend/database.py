@@ -85,27 +85,6 @@ def init_db() -> None:
     except Exception as e:
         print(f"Migration notice: {e}")
 
-    # Seed initial items if database table is empty
-    db = SessionLocal()
-    try:
-        count = db.query(ShoppingItem).count()
-        if count == 0:
-            sample_items = [
-                ShoppingItem(name="Whole Milk", quantity=2.0, unit="bottles", category="Dairy", max_price=3.79),
-                ShoppingItem(name="Sourdough Loaf", quantity=1.0, unit="loaf", category="Bakery", max_price=4.99),
-                ShoppingItem(name="Organic Strawberries", quantity=1.0, unit="1 lb box", category="Produce", max_price=4.49),
-                ShoppingItem(name="Free-Range Chicken Breast", quantity=1.5, unit="lb", category="Meat", max_price=9.99),
-            ]
-            for item in sample_items:
-                item.session_id = "default"
-                item.normalized_name = _normalize(item.name)
-            db.add_all(sample_items)
-            db.commit()
-    except Exception:
-        db.rollback()
-    finally:
-        db.close()
-
 
 def get_db():
     db: Session = SessionLocal()

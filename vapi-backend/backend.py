@@ -500,6 +500,14 @@ def get_items(session_id: str = "default", db: Session = Depends(get_db)):
             return {"count": 0, "items": []}
 
 
+@app.post("/clear_list")
+@app.get("/clear_list")
+@app.delete("/items")
+def clear_all_items(session_id: str = "default", db: Session = Depends(get_db)):
+    res = handle_clear_list(db, session_id, {})
+    return {"status": "success", "message": res, "items": []}
+
+
 @app.get("/replenishment")
 def get_replenishment(session_id: str = "default", db: Session = Depends(get_db)):
     suggestions = compute_replenishment(db, session_id)
@@ -585,8 +593,10 @@ async def call_tool_route(
         TOOL_HANDLERS.get(tool_name)
         or TOOL_HANDLERS.get(tool_name.lower())
         or TOOL_HANDLERS.get(tool_name.capitalize())
-        or handle_add_item
     )
+
+    if not handler:
+        raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
 
     merged_args = {}
     for k, v in request.query_params.items():
