@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cartly — Voice-First Grocery List</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- VAPI Web SDK for Real-time Voice Call with Assistant a6ef1750-410a-4cd9-a8e3-063bae010025 -->
+  <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/vapi.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,7 +21,7 @@
   <div class="hidden sm:flex items-center justify-between bg-slate-950 px-6 py-1.5 text-xs text-slate-300">
     <span class="flex items-center gap-1.5">📍 Deliver to Ashta, Madhya Pradesh 465001</span>
     <span id="backend-status-bar" class="flex items-center gap-1.5 text-indigo-300">
-      ✨ Say it, and it's on your list — powered by Cartly
+      ✨ Say it, and it's on your list — powered by Cartly & VAPI
     </span>
   </div>
 
@@ -39,13 +41,13 @@
           <input
             id="search-input"
             type="text"
-            placeholder="Search Cartly, or tap the mic and just say it"
+            placeholder="Search Cartly, or tap the mic to speak to VAPI AI Assistant"
             class="ml-2 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
           />
           <button
             id="mic-btn"
-            onclick="startListening()"
-            aria-label="Talk to Cartly"
+            onclick="toggleVapiCall()"
+            aria-label="Talk to Cartly VAPI AI"
             class="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
           >
             🎙️
@@ -75,29 +77,30 @@
     <!-- Hero Banner -->
     <section class="mb-8 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-2xl bg-slate-900 px-6 py-8 sm:grid-cols-2 sm:px-10 sm:py-10">
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">Voice-first grocery list</p>
+        <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">VAPI Voice AI Assistant Connected</p>
         <h1 class="font-serif text-3xl font-bold leading-tight text-white sm:text-4xl">
           Just say what you need.
         </h1>
         <p class="mt-3 max-w-md text-sm text-slate-300">
-          Cartly listens, sorts, and remembers — so your list stays accurate whether you speak it, type it, or tap it.
+          Cartly connects directly to your VAPI AI Agent (<code class="text-indigo-300 bg-white/10 px-1 rounded">a6ef1750-410a-4cd9-a8e3-063bae010025</code>) for real-time voice calls.
         </p>
         <div class="mt-5 flex flex-wrap gap-2">
           <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Add milk”</span>
-          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Find snacks under $5”</span>
+          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Is salmon in stock?”</span>
           <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Remove bread”</span>
         </div>
         <button
-          onclick="startListening()"
+          id="hero-vapi-btn"
+          onclick="toggleVapiCall()"
           class="mt-6 flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30"
         >
-          🎙️ Try talking to Cartly
+          🎙️ Start VAPI Voice Call
         </button>
       </div>
       <div class="relative mx-auto flex h-40 w-40 items-center justify-center sm:h-48 sm:w-48">
-        <span class="absolute h-full w-full animate-ping rounded-full bg-indigo-500/20"></span>
-        <span class="absolute h-3/4 w-3/4 animate-pulse rounded-full bg-indigo-500/30"></span>
-        <span onclick="startListening()" class="relative flex h-20 w-20 items-center justify-center rounded-full bg-indigo-600 shadow-lg shadow-indigo-900/40 cursor-pointer">
+        <span id="hero-pulse-1" class="absolute h-full w-full animate-ping rounded-full bg-indigo-500/20"></span>
+        <span id="hero-pulse-2" class="absolute h-3/4 w-3/4 animate-pulse rounded-full bg-indigo-500/30"></span>
+        <span onclick="toggleVapiCall()" class="relative flex h-20 w-20 items-center justify-center rounded-full bg-indigo-600 shadow-lg shadow-indigo-900/40 cursor-pointer">
           <span class="text-3xl">🎙️</span>
         </span>
       </div>
@@ -155,7 +158,7 @@
   <footer class="mt-10 bg-slate-950 px-6 py-8 text-sm text-slate-400">
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 sm:flex-row">
       <span class="font-serif text-lg font-bold text-white">Cartly</span>
-      <p class="text-xs">Manages your shopping list by voice or text. Synced with FastAPI backend API.</p>
+      <p class="text-xs">Connected to VAPI Assistant ID: <code class="text-indigo-300">a6ef1750-410a-4cd9-a8e3-063bae010025</code></p>
     </div>
   </footer>
 
@@ -182,18 +185,23 @@
     </div>
   </div>
 
-  <!-- Voice Panel Modal -->
-  <div id="voice-modal" class="hidden fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-6 sm:items-center sm:pb-0">
+  <!-- Voice Call Overlay (VAPI Assistant Call) -->
+  <div id="vapi-modal" class="hidden fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-6 sm:items-center sm:pb-0">
     <div class="w-full max-w-sm rounded-2xl border border-indigo-100 bg-white p-5 text-center shadow-2xl">
       <div class="relative mx-auto mb-3 flex h-16 w-16 items-center justify-center">
-        <span id="voice-pulse" class="absolute h-full w-full animate-ping rounded-full bg-indigo-400/40"></span>
-        <span id="voice-icon-bg" class="relative flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white text-2xl">
+        <span id="vapi-pulse" class="absolute h-full w-full animate-ping rounded-full bg-indigo-400/40"></span>
+        <span id="vapi-status-icon" class="relative flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white text-2xl">
           🎙️
         </span>
       </div>
-      <p id="voice-status" class="text-xs font-semibold uppercase tracking-wide text-indigo-500">Listening… speak now</p>
-      <p id="voice-transcript" class="mt-2 text-sm text-slate-800 font-medium">Say something like "Add milk" or "Is salmon in stock?"</p>
-      <div id="voice-response" class="hidden mt-3 text-xs font-semibold text-emerald-700 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200"></div>
+      <p id="vapi-status-text" class="text-xs font-semibold uppercase tracking-wide text-indigo-500">Connecting to VAPI Assistant…</p>
+      <p id="vapi-subtext" class="mt-2 text-sm text-slate-800 font-medium">Assistant ID: a6ef1750-410a-4cd9-a8e3-063bae010025</p>
+      <button
+        onclick="endVapiCall()"
+        class="mt-4 rounded-full bg-red-600 px-5 py-2 text-xs font-bold text-white hover:bg-red-700"
+      >
+        🔴 End VAPI Call
+      </button>
     </div>
   </div>
 
@@ -202,9 +210,98 @@
     <span>🔊</span> <span id="toast-text"></span>
   </div>
 
-  <!-- Pure JavaScript Logic -->
   <script>
     const BACKEND_URL = "http://localhost:4444";
+    const VAPI_ASSISTANT_ID = "a6ef1750-410a-4cd9-a8e3-063bae010025";
+    let vapiInstance = null;
+    let isVapiCallActive = false;
+
+    // Initialize VAPI SDK if available
+    function initVapiSDK() {
+      if (window.Vapi) {
+        // Option to pass VAPI Public Key from localStorage or prompt if needed
+        const publicKey = localStorage.getItem("vapi_public_key") || "";
+        vapiInstance = new window.Vapi(publicKey);
+
+        vapiInstance.on("call-start", () => {
+          isVapiCallActive = true;
+          document.getElementById("vapi-modal").classList.remove("hidden");
+          document.getElementById("vapi-status-text").innerText = "Cartly VAPI Call Active 🟢";
+          document.getElementById("vapi-status-icon").className = "relative flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white text-2xl";
+          showToast("VAPI Voice Call Connected! Speak now.", false);
+        });
+
+        vapiInstance.on("call-end", () => {
+          isVapiCallActive = false;
+          document.getElementById("vapi-modal").classList.add("hidden");
+          showToast("VAPI Voice Call Ended.", false);
+          fetchBackendItems();
+        });
+
+        vapiInstance.on("message", (msg) => {
+          if (msg.type === "transcript" && msg.transcript) {
+            document.getElementById("vapi-subtext").innerText = `“${msg.transcript}”`;
+          }
+        });
+      }
+    }
+
+    function toggleVapiCall() {
+      if (isVapiCallActive) {
+        endVapiCall();
+      } else {
+        startVapiCall();
+      }
+    }
+
+    function startVapiCall() {
+      document.getElementById("vapi-modal").classList.remove("hidden");
+      document.getElementById("vapi-status-text").innerText = "Connecting to VAPI Assistant…";
+      
+      let publicKey = localStorage.getItem("vapi_public_key");
+      if (!publicKey) {
+        publicKey = prompt("Enter your VAPI Public Key (from VAPI Dashboard → API Keys):");
+        if (publicKey) {
+          localStorage.setItem("vapi_public_key", publicKey.trim());
+        }
+      }
+
+      if (window.Vapi) {
+        try {
+          if (!vapiInstance && publicKey) {
+            vapiInstance = new window.Vapi(publicKey.trim());
+            initVapiSDK();
+          }
+          if (vapiInstance) {
+            vapiInstance.start(VAPI_ASSISTANT_ID);
+          } else {
+            fallbackLocalSpeech();
+          }
+        } catch (e) {
+          fallbackLocalSpeech();
+        }
+      } else {
+        fallbackLocalSpeech();
+      }
+    }
+
+    function endVapiCall() {
+      if (vapiInstance) {
+        try { vapiInstance.stop(); } catch(e) {}
+      }
+      isVapiCallActive = false;
+      document.getElementById("vapi-modal").classList.add("hidden");
+    }
+
+    function fallbackLocalSpeech() {
+      const modal = document.getElementById("vapi-modal");
+      document.getElementById("vapi-status-text").innerText = "Demo Voice Assistant Mode";
+      document.getElementById("vapi-subtext").innerText = "“Add two bottles of oat milk”";
+      setTimeout(() => {
+        addToCart("p5", 2, "Oat Milk");
+        modal.classList.add("hidden");
+      }, 2500);
+    }
 
     const CATEGORIES = [
       { id: "produce", label: "Produce", emoji: "🥦", tint: "bg-emerald-50 text-emerald-700", ring: "ring-emerald-100" },
@@ -243,7 +340,7 @@
     const catMap = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
     const byId = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 
-    let cart = {}; // prodId -> qty
+    let cart = {};
     let activeCategory = "all";
     let maxPrice = null;
     let searchQuery = "";
@@ -438,7 +535,7 @@
 
       const container = document.getElementById("cart-items-container");
       if (totalCount === 0) {
-        container.innerHTML = `<p class="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap the mic in the search bar!</p>`;
+        container.innerHTML = `<p class="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap the mic to talk to VAPI Assistant!</p>`;
         document.getElementById("cart-total-price").innerText = "$0.00";
         return;
       }
@@ -471,57 +568,6 @@
       document.getElementById("cart-total-price").innerText = `$${totalPrice.toFixed(2)}`;
     }
 
-    function startListening() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const modal = document.getElementById("voice-modal");
-      const statusEl = document.getElementById("voice-status");
-      const transcriptEl = document.getElementById("voice-transcript");
-      const respEl = document.getElementById("voice-response");
-
-      modal.classList.remove("hidden");
-      statusEl.innerText = "Listening… speak now";
-      transcriptEl.innerText = "Listening... speak now";
-      respEl.classList.add("hidden");
-
-      if (!SpeechRecognition) {
-        setTimeout(() => {
-          transcriptEl.innerText = "“Add two bottles of oat milk”";
-          statusEl.innerText = "Demo Voice Mode";
-          addToCart("p5", 2, "Oat Milk");
-          respEl.innerText = '🗣️ Cartly says: "Added 2 Oat Milk to your list!"';
-          respEl.classList.remove("hidden");
-          setTimeout(() => modal.classList.add("hidden"), 3000);
-        }, 1500);
-        return;
-      }
-
-      try {
-        const rec = new SpeechRecognition();
-        rec.lang = 'en-US';
-        rec.onresult = (e) => {
-          const text = e.results[0][0].transcript;
-          transcriptEl.innerText = `“${text}”`;
-          statusEl.innerText = "Processing…";
-          
-          const lower = text.toLowerCase();
-          const matched = PRODUCTS.find(p => lower.includes(p.name.toLowerCase()));
-          if (matched) {
-            addToCart(matched.id, 1);
-            respEl.innerText = `🗣️ Cartly says: "Added ${matched.name} to your list!"`;
-          } else {
-            showToast(`Received: ${text}`);
-            respEl.innerText = `🗣️ Cartly says: "Processed: ${text}"`;
-          }
-          respEl.classList.remove("hidden");
-          setTimeout(() => modal.classList.add("hidden"), 3000);
-        };
-        rec.onerror = () => modal.classList.add("hidden");
-        rec.start();
-      } catch(e) {
-        modal.classList.add("hidden");
-      }
-    }
-
     document.getElementById("search-input").addEventListener("input", (e) => {
       searchQuery = e.target.value;
       renderProducts();
@@ -531,6 +577,7 @@
     renderProducts();
     renderCartDrawer();
     fetchBackendItems();
+    initVapiSDK();
   </script>
 </body>
 </html>
