@@ -360,12 +360,18 @@ def handle_replenishment_suggestions(db: Session, session_id: str, args: dict) -
 
 TOOL_HANDLERS = {
     "add_item": handle_add_item,
+    "Add_item": handle_add_item,
+    "BASKET": handle_add_item,
+    "basket": handle_add_item,
     "modify_item": handle_modify_item,
-    "update_item": handle_modify_item,  # alias
+    "update_item": handle_modify_item,
     "cancel_item": handle_cancel_item,
-    "remove_item": handle_cancel_item,  # alias
+    "Cancel_item": handle_cancel_item,
+    "remove_item": handle_cancel_item,
     "search_items": handle_search_items,
     "item_availability": handle_item_availability,
+    "Item_Avilability": handle_item_availability,
+    "Item_Availability": handle_item_availability,
     "list_items": handle_list_items,
     "clear_list": handle_clear_list,
     "replenishment_suggestions": handle_replenishment_suggestions,
@@ -511,7 +517,7 @@ async def call_tool_route(
     if tool_name in ["items", "replenishment", "vapi"]:
         raise HTTPException(status_code=404, detail="Reserved endpoint")
 
-    handler = TOOL_HANDLERS.get(tool_name)
+    handler = TOOL_HANDLERS.get(tool_name) or TOOL_HANDLERS.get(tool_name.lower()) or TOOL_HANDLERS.get(tool_name.capitalize())
     if handler is None:
         raise HTTPException(status_code=404, detail=f"No handler named '{tool_name}'")
 
