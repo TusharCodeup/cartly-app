@@ -5,14 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cartly — Voice-First Grocery List</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- VAPI Web SDK for Real-time Voice Call -->
-  <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/vapi.js"></script>
+  <!-- VAPI Web SDK (Official HTML Script Tag) -->
+  <script src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js" defer async></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
     .font-serif { font-family: 'Newsreader', serif; }
+    @keyframes voice-wave {
+      0%, 100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(1); }
+    }
+    .voice-bar { animation: voice-wave 0.8s ease-in-out infinite; transform-origin: bottom; }
+    .voice-bar:nth-child(2) { animation-delay: 0.1s; }
+    .voice-bar:nth-child(3) { animation-delay: 0.2s; }
+    .voice-bar:nth-child(4) { animation-delay: 0.3s; }
+    .voice-bar:nth-child(5) { animation-delay: 0.15s; }
+    .transcript-scroll::-webkit-scrollbar { width: 4px; }
+    .transcript-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
@@ -69,7 +80,6 @@
 
     <!-- Category Strip -->
     <div id="category-strip" class="mx-auto mt-3 flex max-w-7xl gap-2 overflow-x-auto pb-0.5">
-      <!-- Injected via JS -->
     </div>
   </header>
 
@@ -86,16 +96,16 @@
           Cartly listens, sorts, and manages your personal shopping list seamlessly by voice or text.
         </p>
         <div class="mt-5 flex flex-wrap gap-2">
-          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Add milk”</span>
-          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Is salmon in stock?”</span>
-          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Remove bread”</span>
+          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">"Add milk"</span>
+          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">"Is salmon in stock?"</span>
+          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">"Remove bread"</span>
         </div>
         <button
           id="hero-vapi-btn"
           onclick="toggleVapiCall()"
           class="mt-6 flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30"
         >
-          🎙️ Start Voice Call
+          🎙️ Talk to Cartly
         </button>
       </div>
       <div class="relative mx-auto flex h-40 w-40 items-center justify-center sm:h-48 sm:w-48">
@@ -152,7 +162,6 @@
 
     <!-- Product Grid -->
     <section id="product-grid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      <!-- Injected via JS -->
     </section>
   </main>
 
@@ -163,7 +172,7 @@
     </div>
   </footer>
 
-  <!-- Private Shopping List Drawer -->
+  <!-- Shopping List Drawer -->
   <div id="cart-drawer-backdrop" class="hidden fixed inset-0 z-40 flex justify-end">
     <div class="absolute inset-0 bg-slate-900/40" onclick="toggleCartDrawer(false)"></div>
     <div class="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
@@ -172,7 +181,6 @@
         <button onclick="toggleCartDrawer(false)" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
       </div>
       <div id="cart-items-container" class="flex-1 overflow-y-auto px-5 py-4">
-        <!-- Injected via JS -->
       </div>
       <div class="border-t border-slate-100 px-5 py-4">
         <div class="mb-3 flex items-center justify-between text-sm">
@@ -186,64 +194,164 @@
     </div>
   </div>
 
-  <!-- Voice Call Overlay (VAPI Assistant Call) -->
-  <div id="vapi-modal" class="hidden fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-6 sm:items-center sm:pb-0">
-    <div class="w-full max-w-sm rounded-2xl border border-indigo-100 bg-white p-5 text-center shadow-2xl">
-      <div class="relative mx-auto mb-3 flex h-16 w-16 items-center justify-center">
-        <span id="vapi-pulse" class="absolute h-full w-full animate-ping rounded-full bg-indigo-400/40"></span>
-        <span id="vapi-status-icon" class="relative flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white text-2xl">
-          🎙️
-        </span>
+  <!-- VAPI Voice Call Panel (Full Overlay with Live Transcript) -->
+  <div id="vapi-panel" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full sm:max-w-md bg-white sm:rounded-2xl shadow-2xl flex flex-col h-[85vh] sm:h-[70vh] rounded-t-2xl">
+
+      <!-- Call Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <span id="vapi-header-pulse" class="absolute inset-0 animate-ping rounded-full bg-emerald-400/40"></span>
+            <span id="vapi-header-icon" class="relative flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-white text-lg">🎙️</span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-slate-800">Cartly Assistant</p>
+            <p id="vapi-call-status" class="text-xs text-indigo-500 font-medium">Connecting…</p>
+          </div>
+        </div>
+        <button onclick="endVapiCall()" class="flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 transition-colors">
+          <span>📞</span> End Call
+        </button>
       </div>
-      <p id="vapi-status-text" class="text-xs font-semibold uppercase tracking-wide text-indigo-500">Connecting to Voice Assistant…</p>
-      <p id="vapi-subtext" class="mt-2 text-sm text-slate-800 font-medium">Cartly Assistant Active</p>
-      <button
-        onclick="endVapiCall()"
-        class="mt-4 rounded-full bg-red-600 px-5 py-2 text-xs font-bold text-white hover:bg-red-700"
-      >
-        🔴 End Voice Call
-      </button>
+
+      <!-- Voice Visualizer -->
+      <div id="vapi-visualizer" class="flex items-end justify-center gap-1 px-5 py-3 bg-slate-50 border-b border-slate-100">
+        <div class="voice-bar w-1 h-6 bg-indigo-300 rounded-full"></div>
+        <div class="voice-bar w-1 h-8 bg-indigo-400 rounded-full"></div>
+        <div class="voice-bar w-1 h-10 bg-indigo-500 rounded-full"></div>
+        <div class="voice-bar w-1 h-7 bg-indigo-400 rounded-full"></div>
+        <div class="voice-bar w-1 h-5 bg-indigo-300 rounded-full"></div>
+        <span id="vapi-speaking-label" class="ml-3 text-xs font-medium text-slate-500">Listening…</span>
+      </div>
+
+      <!-- Live Transcript -->
+      <div id="vapi-transcript" class="flex-1 overflow-y-auto px-5 py-4 space-y-3 transcript-scroll">
+        <div class="flex justify-center">
+          <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">Conversation started</span>
+        </div>
+      </div>
+
+      <!-- Bottom Bar -->
+      <div class="border-t border-slate-100 px-5 py-4 flex items-center justify-between bg-white sm:rounded-b-2xl">
+        <button id="vapi-mute-btn" onclick="toggleMute()" class="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200">
+          🔊 Unmuted
+        </button>
+        <div class="flex items-center gap-2">
+          <span id="vapi-timer" class="text-xs font-mono text-slate-400">0:00</span>
+          <button onclick="endVapiCall()" class="rounded-full bg-red-600 p-3 text-white hover:bg-red-700 shadow-lg shadow-red-600/30">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast-el" class="hidden fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg flex items-center gap-2">
+  <div id="toast-el" class="hidden fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg flex items-center gap-2">
     <span>🔊</span> <span id="toast-text"></span>
   </div>
 
   <script>
-    const BACKEND_URL = "https://cartly-backend-02g1.onrender.com";
+    // ─── Config ───────────────────────────────────────────────
+    const BACKEND_URL  = "https://cartly-backend-02g1.onrender.com";
+    const VAPI_PUBLIC_KEY  = "fb18a88b-2831-45d4-8c0c-6e0857f76b06";
     const VAPI_ASSISTANT_ID = "a6ef1750-410a-4cd9-a8e3-063bae010025";
+
     let vapiInstance = null;
     let isVapiCallActive = false;
+    let isMuted = false;
+    let callTimerInterval = null;
+    let callSeconds = 0;
 
-    function initVapiSDK() {
-      if (window.Vapi) {
-        const publicKey = localStorage.getItem("vapi_public_key") || "";
-        vapiInstance = new window.Vapi(publicKey);
-
-        vapiInstance.on("call-start", () => {
-          isVapiCallActive = true;
-          document.getElementById("vapi-modal").classList.remove("hidden");
-          document.getElementById("vapi-status-text").innerText = "Cartly Voice Call Active 🟢";
-          document.getElementById("vapi-status-icon").className = "relative flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white text-2xl";
-          showToast("Voice Call Connected! Speak now.", false);
-        });
-
-        vapiInstance.on("call-end", () => {
-          isVapiCallActive = false;
-          document.getElementById("vapi-modal").classList.add("hidden");
-          showToast("Voice Call Ended.", false);
-          fetchBackendItems();
-        });
-
-        vapiInstance.on("message", (msg) => {
-          if (msg.type === "transcript" && msg.transcript) {
-            document.getElementById("vapi-subtext").innerText = `“${msg.transcript}”`;
-          }
-        });
+    // ─── VAPI SDK ─────────────────────────────────────────────
+    function initVapi() {
+      if (window.vapiSDK && window.vapiSDK.run) {
+        try {
+          vapiInstance = window.vapiSDK.run({
+            apiKey: VAPI_PUBLIC_KEY,
+            assistant: VAPI_ASSISTANT_ID,
+            config: {
+              position: "bottom-right",
+              offset: "24px",
+              width: "56px",
+              height: "56px",
+            }
+          });
+          attachVapiListeners();
+        } catch (err) {
+          console.error("Error initializing vapiSDK.run:", err);
+        }
       }
     }
+
+    function attachVapiListeners() {
+      if (!vapiInstance || typeof vapiInstance.on !== "function") return;
+
+      vapiInstance.on("call-start", () => {
+        isVapiCallActive = true;
+        document.getElementById("vapi-panel").classList.remove("hidden");
+        document.getElementById("vapi-call-status").innerText = "Connected 🟢";
+        document.getElementById("vapi-header-icon").className = "relative flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white text-lg";
+        showToast("Voice call connected — speak now!", false);
+        startCallTimer();
+      });
+
+      vapiInstance.on("call-end", () => {
+        isVapiCallActive = false;
+        document.getElementById("vapi-panel").classList.add("hidden");
+        showToast("Voice call ended.", false);
+        stopCallTimer();
+        fetchBackendItems();
+      });
+
+      vapiInstance.on("speech-start", () => {
+        document.getElementById("vapi-speaking-label").innerText = "Assistant speaking…";
+        document.getElementById("vapi-visualizer").classList.remove("bg-slate-50");
+        document.getElementById("vapi-visualizer").classList.add("bg-indigo-50");
+      });
+
+      vapiInstance.on("speech-end", () => {
+        document.getElementById("vapi-speaking-label").innerText = "Listening…";
+        document.getElementById("vapi-visualizer").classList.remove("bg-indigo-50");
+        document.getElementById("vapi-visualizer").classList.add("bg-slate-50");
+      });
+
+      vapiInstance.on("message", (msg) => {
+        if (msg.type === "transcript" && msg.transcript) {
+          if (msg.transcriptType === "final") {
+            addTranscriptBubble(msg.role, msg.transcript);
+            if (msg.role === "assistant") {
+              setTimeout(fetchBackendItems, 500);
+            }
+          } else if (msg.transcriptType === "partial") {
+            updatePartialTranscript(msg.role, msg.transcript);
+          }
+        }
+      });
+
+      vapiInstance.on("error", (err) => {
+        console.error("VAPI Error:", err);
+        document.getElementById("vapi-call-status").innerText = "Error";
+        const msg = err?.message || err?.error?.message || "Connection error. Please check mic permissions.";
+        addTranscriptBubble("system", msg);
+      });
+    }
+
+    // Dynamic Script Loader for Vapi SDK
+    (function (d, t) {
+      var g = document.createElement(t),
+        s = d.getElementsByTagName(t)[0];
+      g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+      g.defer = true;
+      g.async = true;
+      s.parentNode.insertBefore(g, s);
+      g.onload = function () {
+        initVapi();
+      };
+    })(document, "script");
 
     function toggleVapiCall() {
       if (isVapiCallActive) {
@@ -254,54 +362,131 @@
     }
 
     function startVapiCall() {
-      document.getElementById("vapi-modal").classList.remove("hidden");
-      document.getElementById("vapi-status-text").innerText = "Connecting to Voice Assistant…";
-      
-      let publicKey = localStorage.getItem("vapi_public_key");
-      if (!publicKey) {
-        publicKey = prompt("Enter your VAPI Public Key (from VAPI Dashboard → API Keys):");
-        if (publicKey) {
-          localStorage.setItem("vapi_public_key", publicKey.trim());
-        }
+      const panel = document.getElementById("vapi-panel");
+      panel.classList.remove("hidden");
+      document.getElementById("vapi-call-status").innerText = "Connecting…";
+      document.getElementById("vapi-header-icon").className = "relative flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-white text-lg";
+
+      // Clear transcript
+      document.getElementById("vapi-transcript").innerHTML = `
+        <div class="flex justify-center">
+          <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">Conversation started</span>
+        </div>
+      `;
+
+      if (!vapiInstance && window.vapiSDK && window.vapiSDK.run) {
+        initVapi();
       }
 
-      if (window.Vapi) {
+      if (vapiInstance && typeof vapiInstance.start === "function") {
         try {
-          if (!vapiInstance && publicKey) {
-            vapiInstance = new window.Vapi(publicKey.trim());
-            initVapiSDK();
-          }
-          if (vapiInstance) {
-            vapiInstance.start(VAPI_ASSISTANT_ID);
-          } else {
-            fallbackLocalSpeech();
-          }
+          vapiInstance.start(VAPI_ASSISTANT_ID);
         } catch (e) {
-          fallbackLocalSpeech();
+          console.error("Failed to start VAPI call:", e);
+          addTranscriptBubble("system", "Could not start call. Please check microphone permissions.");
         }
       } else {
-        fallbackLocalSpeech();
+        setTimeout(() => {
+          if (vapiInstance && typeof vapiInstance.start === "function") {
+            vapiInstance.start(VAPI_ASSISTANT_ID);
+          } else {
+            document.getElementById("vapi-call-status").innerText = "Tap Floating Mic";
+            addTranscriptBubble("system", "Please allow microphone access or tap the floating mic in the bottom corner.");
+          }
+        }, 800);
       }
     }
 
     function endVapiCall() {
-      if (vapiInstance) {
+      if (vapiInstance && typeof vapiInstance.stop === "function") {
         try { vapiInstance.stop(); } catch(e) {}
       }
       isVapiCallActive = false;
-      document.getElementById("vapi-modal").classList.add("hidden");
+      document.getElementById("vapi-panel").classList.add("hidden");
+      stopCallTimer();
+      fetchBackendItems();
     }
 
-    function fallbackLocalSpeech() {
-      const modal = document.getElementById("vapi-modal");
-      document.getElementById("vapi-status-text").innerText = "Demo Voice Assistant Mode";
-      document.getElementById("vapi-subtext").innerText = "“Add two bottles of oat milk”";
-      setTimeout(() => {
-        addToCart("p5", 2, "Oat Milk");
-        modal.classList.add("hidden");
-      }, 2500);
+    function toggleMute() {
+      if (!vapiInstance || !isVapiCallActive) return;
+      isMuted = !isMuted;
+      try { vapiInstance.setMuted(isMuted); } catch(e) {}
+      const btn = document.getElementById("vapi-mute-btn");
+      btn.innerHTML = isMuted ? "🔇 Muted" : "🔊 Unmuted";
+      btn.className = isMuted
+        ? "flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-200"
+        : "flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200";
     }
 
+    // ─── Transcript UI ────────────────────────────────────────
+    let partialEl = null;
+
+    function addTranscriptBubble(role, text) {
+      if (partialEl) { partialEl.remove(); partialEl = null; }
+
+      const container = document.getElementById("vapi-transcript");
+      const div = document.createElement("div");
+      div.className = role === "user"
+        ? "flex justify-end"
+        : role === "system"
+        ? "flex justify-center"
+        : "flex justify-start";
+
+      const bubble = document.createElement("div");
+      if (role === "user") {
+        bubble.className = "max-w-[80%] rounded-2xl rounded-br-md bg-indigo-600 px-4 py-2.5 text-sm text-white";
+      } else if (role === "system") {
+        bubble.className = "rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-600";
+      } else {
+        bubble.className = "max-w-[80%] rounded-2xl rounded-bl-md bg-slate-100 px-4 py-2.5 text-sm text-slate-800";
+      }
+      bubble.innerText = text;
+      div.appendChild(bubble);
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function updatePartialTranscript(role, text) {
+      if (!partialEl) {
+        const container = document.getElementById("vapi-transcript");
+        partialEl = document.createElement("div");
+        partialEl.className = role === "user" ? "flex justify-end" : "flex justify-start";
+        const bubble = document.createElement("div");
+        bubble.className = role === "user"
+          ? "max-w-[80%] rounded-2xl rounded-br-md bg-indigo-400/60 px-4 py-2.5 text-sm text-white italic"
+          : "max-w-[80%] rounded-2xl rounded-bl-md bg-slate-50 px-4 py-2.5 text-sm text-slate-500 italic";
+        partialEl.appendChild(bubble);
+        container.appendChild(partialEl);
+      }
+      partialEl.firstChild.innerText = text;
+      const container = document.getElementById("vapi-transcript");
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // ─── Call Timer ───────────────────────────────────────────
+    function startCallTimer() {
+      callSeconds = 0;
+      updateTimerDisplay();
+      callTimerInterval = setInterval(() => {
+        callSeconds++;
+        updateTimerDisplay();
+      }, 1000);
+    }
+
+    function stopCallTimer() {
+      clearInterval(callTimerInterval);
+      callTimerInterval = null;
+      callSeconds = 0;
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(callSeconds / 60);
+      const s = callSeconds % 60;
+      document.getElementById("vapi-timer").innerText = `${m}:${s.toString().padStart(2, "0")}`;
+    }
+
+    // ─── Product Data ─────────────────────────────────────────
     const CATEGORIES = [
       { id: "produce", label: "Produce", emoji: "🥦", tint: "bg-emerald-50 text-emerald-700", ring: "ring-emerald-100" },
       { id: "dairy", label: "Dairy", emoji: "🥛", tint: "bg-sky-50 text-sky-700", ring: "ring-sky-100" },
@@ -345,24 +530,16 @@
     let searchQuery = "";
     let toastTimer = null;
 
-    function speak(text) {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
-
+    // ─── Utilities ────────────────────────────────────────────
     function showToast(msg, speakOut = true) {
       const toastEl = document.getElementById("toast-el");
-      const toastText = document.getElementById("toast-text");
-      toastText.innerText = msg;
+      document.getElementById("toast-text").innerText = msg;
       toastEl.classList.remove("hidden");
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toastEl.classList.add("hidden"), 3000);
-      if (speakOut) speak(msg);
     }
 
+    // ─── Backend Sync ─────────────────────────────────────────
     async function fetchBackendItems() {
       try {
         const res = await fetch(`${BACKEND_URL}/items`);
@@ -370,7 +547,7 @@
           const data = await res.json();
           cart = {};
           (data.items || []).forEach(item => {
-            const matched = PRODUCTS.find(p => p.name.toLowerCase() === item.itemName.toLowerCase());
+            const matched = PRODUCTS.find(p => p.name.toLowerCase() === (item.itemName || "").toLowerCase());
             if (matched) cart[matched.id] = item.quantity;
           });
           renderProducts();
@@ -386,18 +563,11 @@
       renderProducts();
       renderCartDrawer();
       showToast(`Added ${itemName} to your list`);
-
       try {
         await fetch(`${BACKEND_URL}/add_item`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            itemName: itemName,
-            quantity: qty,
-            unit: prod ? prod.unit : "",
-            category: prod ? catMap[prod.category]?.label : "Other",
-            maxPrice: prod ? prod.price : null
-          })
+          body: JSON.stringify({ itemName, quantity: qty, unit: prod ? prod.unit : "", category: prod ? catMap[prod.category]?.label : "Other", maxPrice: prod ? prod.price : null })
         });
       } catch(e) {}
     }
@@ -408,35 +578,18 @@
         delete cart[id];
         if (prod) {
           showToast(`Removed ${prod.name} from your list`);
-          try {
-            await fetch(`${BACKEND_URL}/cancel_item`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ itemName: prod.name })
-            });
-          } catch(e) {}
+          try { await fetch(`${BACKEND_URL}/cancel_item`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itemName: prod.name }) }); } catch(e) {}
         }
       } else {
         cart[id] = qty;
-        if (prod) {
-          showToast(`Updated quantity for ${prod.name} to ${qty}`);
-          try {
-            await fetch(`${BACKEND_URL}/add_item`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ itemName: prod.name, quantity: 1, category: catMap[prod.category]?.label || "Other" })
-            });
-          } catch(e) {}
-        }
+        if (prod) showToast(`Updated ${prod.name} to ${qty}`);
       }
       renderProducts();
       renderCartDrawer();
     }
 
     function toggleCartDrawer(open) {
-      const el = document.getElementById("cart-drawer-backdrop");
-      if (open) el.classList.remove("hidden");
-      else el.classList.add("hidden");
+      document.getElementById("cart-drawer-backdrop").classList.toggle("hidden", !open);
     }
 
     function setPriceFilter(val, btn) {
@@ -448,6 +601,7 @@
       renderProducts();
     }
 
+    // ─── Render Functions ─────────────────────────────────────
     function renderCategoryStrip() {
       const strip = document.getElementById("category-strip");
       let html = `<button onclick="selectCategory('all', this)" class="cat-btn shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium bg-white text-slate-900">All items</button>`;
@@ -459,9 +613,7 @@
 
     function selectCategory(catId, btn) {
       activeCategory = catId;
-      document.querySelectorAll(".cat-btn").forEach(b => {
-        b.className = "cat-btn shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700";
-      });
+      document.querySelectorAll(".cat-btn").forEach(b => b.className = "cat-btn shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700");
       btn.className = "cat-btn shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium bg-white text-slate-900";
       renderProducts();
     }
@@ -469,78 +621,54 @@
     function renderProducts() {
       const grid = document.getElementById("product-grid");
       const filtered = PRODUCTS.filter(p => {
-        const matchesQuery = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCat = activeCategory === "all" || p.category === activeCategory;
-        const matchesPrice = maxPrice == null || p.price <= maxPrice;
-        return matchesQuery && matchesCat && matchesPrice;
+        return (!searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+            && (activeCategory === "all" || p.category === activeCategory)
+            && (maxPrice == null || p.price <= maxPrice);
       });
-
       document.getElementById("product-count").innerText = `${filtered.length} items`;
-
-      if (filtered.length === 0) {
-        grid.innerHTML = `<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">Nothing matches that search. Try a different item or clear the price filter.</div>`;
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">No matching items found.</div>`;
         return;
       }
-
-      let html = "";
-      filtered.forEach(p => {
-        const cat = catMap[p.category];
-        const qty = cart[p.id] || 0;
-        html += `
-          <div class="group flex flex-col rounded-xl border border-slate-200 bg-white p-3 transition-shadow hover:shadow-md">
-            <div class="mb-3 flex h-24 items-center justify-center rounded-lg ${cat.tint} ring-1 ${cat.ring} text-3xl">
-              ${cat.emoji}
-            </div>
+      grid.innerHTML = filtered.map(p => {
+        const cat = catMap[p.category], qty = cart[p.id] || 0;
+        return `
+          <div class="group flex flex-col rounded-xl border border-slate-200 bg-white p-3 hover:shadow-md transition-shadow">
+            <div class="mb-3 flex h-24 items-center justify-center rounded-lg ${cat.tint} ring-1 ${cat.ring} text-3xl">${cat.emoji}</div>
             <span class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">${cat.label}</span>
             <h3 class="text-sm font-semibold leading-snug text-slate-800">${p.name}</h3>
             <p class="mt-0.5 text-xs text-slate-400">${p.unit}</p>
-            <div class="mt-1 flex items-center gap-1 text-xs text-amber-500">
-              <span>⭐</span>
-              <span class="text-slate-500">${p.rating} (${p.reviews})</span>
-            </div>
+            <div class="mt-1 flex items-center gap-1 text-xs text-amber-500"><span>⭐</span><span class="text-slate-500">${p.rating} (${p.reviews})</span></div>
             <div class="mt-2 flex items-center justify-between">
               <span class="font-serif text-base font-bold text-slate-900">$${p.price.toFixed(2)}</span>
-              ${qty === 0 ? `
-                <button onclick="addToCart('${p.id}')" class="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">Add</button>
-              ` : `
-                <div class="flex items-center gap-1 rounded-full bg-slate-100 px-1">
-                  <button onclick="setQty('${p.id}', ${qty - 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
-                  <span class="w-4 text-center text-xs font-semibold">${qty}</span>
-                  <button onclick="setQty('${p.id}', ${qty + 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">+</button>
-                </div>
-              `}
+              ${qty === 0
+                ? `<button onclick="addToCart('${p.id}')" class="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">Add</button>`
+                : `<div class="flex items-center gap-1 rounded-full bg-slate-100 px-1">
+                    <button onclick="setQty('${p.id}',${qty-1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
+                    <span class="w-4 text-center text-xs font-semibold">${qty}</span>
+                    <button onclick="setQty('${p.id}',${qty+1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">+</button>
+                  </div>`}
             </div>
-          </div>
-        `;
-      });
-      grid.innerHTML = html;
+          </div>`;
+      }).join("");
     }
 
     function renderCartDrawer() {
       const totalCount = Object.values(cart).reduce((a, b) => a + b, 0);
       const badge = document.getElementById("cart-badge");
-      if (totalCount > 0) {
-        badge.innerText = totalCount;
-        badge.classList.remove("hidden");
-        badge.classList.add("flex");
-      } else {
-        badge.classList.add("hidden");
-      }
-
+      badge.innerText = totalCount;
+      badge.classList.toggle("hidden", totalCount === 0);
+      badge.classList.toggle("flex", totalCount > 0);
       document.getElementById("cart-drawer-title").innerText = `Your List (${totalCount})`;
-
       const container = document.getElementById("cart-items-container");
-      if (totalCount === 0) {
-        container.innerHTML = `<p class="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap the mic to speak to your assistant!</p>`;
+      if (!totalCount) {
+        container.innerHTML = `<p class="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap 🎙️ to talk to Cartly!</p>`;
         document.getElementById("cart-total-price").innerText = "$0.00";
         return;
       }
-
-      let totalPrice = 0;
-      let html = "";
+      let totalPrice = 0, html = "";
       Object.entries(cart).forEach(([id, qty]) => {
-        const p = byId[id];
-        if (!p) return;
+        const p = byId[id]; if (!p) return;
         const cat = catMap[p.category];
         totalPrice += p.price * qty;
         html += `
@@ -551,19 +679,18 @@
               <p class="text-xs text-slate-400">$${p.price.toFixed(2)} · ${p.unit}</p>
             </div>
             <div class="flex items-center gap-1 rounded-full bg-slate-100 px-1">
-              <button onclick="setQty('${id}', ${qty - 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
+              <button onclick="setQty('${id}',${qty-1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
               <span class="w-4 text-center text-xs font-semibold">${qty}</span>
-              <button onclick="setQty('${id}', ${qty + 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">+</button>
+              <button onclick="setQty('${id}',${qty+1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">+</button>
             </div>
-            <button onclick="setQty('${id}', 0)" class="text-slate-300 hover:text-red-500 font-bold ml-1">✕</button>
-          </div>
-        `;
+            <button onclick="setQty('${id}',0)" class="text-slate-300 hover:text-red-500 font-bold ml-1">✕</button>
+          </div>`;
       });
-
       container.innerHTML = html;
       document.getElementById("cart-total-price").innerText = `$${totalPrice.toFixed(2)}`;
     }
 
+    // ─── Init ─────────────────────────────────────────────────
     document.getElementById("search-input").addEventListener("input", (e) => {
       searchQuery = e.target.value;
       renderProducts();
@@ -573,9 +700,9 @@
     renderProducts();
     renderCartDrawer();
     fetchBackendItems();
-    initVapiSDK();
+    initVapi();
 
-    // Auto-poll live database every 4 seconds to sync voice additions
+    // Auto-sync with backend every 4 seconds
     setInterval(fetchBackendItems, 4000);
   </script>
 </body>

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cartly — Voice-First Grocery List</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- VAPI Web SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/vapi.js"></script>
+  <!-- VAPI Web SDK (Official HTML Script Tag) -->
+  <script src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js" defer async></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -268,14 +268,31 @@
 
     // ─── VAPI SDK ─────────────────────────────────────────────
     function initVapi() {
-      if (!window.Vapi) {
-        console.warn("VAPI SDK not loaded");
-        return;
+      if (window.vapiSDK && window.vapiSDK.run) {
+        try {
+          vapiInstance = window.vapiSDK.run({
+            apiKey: VAPI_PUBLIC_KEY,
+            assistant: VAPI_ASSISTANT_ID,
+            config: {
+              position: "bottom-right",
+              offset: "24px",
+              width: "56px",
+              height: "56px",
+            }
+          });
+          attachVapiListeners();
+        } catch (err) {
+          console.error("Error initializing vapiSDK.run:", err);
+        }
       }
-      vapiInstance = new window.Vapi(VAPI_PUBLIC_KEY);
+    }
+
+    function attachVapiListeners() {
+      if (!vapiInstance || typeof vapiInstance.on !== "function") return;
 
       vapiInstance.on("call-start", () => {
         isVapiCallActive = true;
+        document.getElementById("vapi-panel").classList.remove("hidden");
         document.getElementById("vapi-call-status").innerText = "Connected 🟢";
         document.getElementById("vapi-header-icon").className = "relative flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white text-lg";
         showToast("Voice call connected — speak now!", false);
@@ -303,26 +320,38 @@
       });
 
       vapiInstance.on("message", (msg) => {
-        // Live transcript
-        if (msg.type === "transcript" && msg.transcriptType === "final" && msg.transcript) {
-          const role = msg.role; // "user" or "assistant"
-          addTranscriptBubble(role, msg.transcript);
-          // After assistant speaks, sync the list
-          if (role === "assistant") {
-            setTimeout(fetchBackendItems, 500);
+        if (msg.type === "transcript" && msg.transcript) {
+          if (msg.transcriptType === "final") {
+            addTranscriptBubble(msg.role, msg.transcript);
+            if (msg.role === "assistant") {
+              setTimeout(fetchBackendItems, 500);
+            }
+          } else if (msg.transcriptType === "partial") {
+            updatePartialTranscript(msg.role, msg.transcript);
           }
-        }
-        // Also handle partial transcripts for real-time feel
-        if (msg.type === "transcript" && msg.transcriptType === "partial" && msg.transcript) {
-          updatePartialTranscript(msg.role, msg.transcript);
         }
       });
 
       vapiInstance.on("error", (err) => {
-        console.error("VAPI error:", err);
-        addTranscriptBubble("system", "Connection error — please try again.");
+        console.error("VAPI Error:", err);
+        document.getElementById("vapi-call-status").innerText = "Error";
+        const msg = err?.message || err?.error?.message || "Connection error. Please check mic permissions.";
+        addTranscriptBubble("system", msg);
       });
     }
+
+    // Dynamic Script Loader for Vapi SDK
+    (function (d, t) {
+      var g = document.createElement(t),
+        s = d.getElementsByTagName(t)[0];
+      g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+      g.defer = true;
+      g.async = true;
+      s.parentNode.insertBefore(g, s);
+      g.onload = function () {
+        initVapi();
+      };
+    })(document, "script");
 
     function toggleVapiCall() {
       if (isVapiCallActive) {
@@ -333,36 +362,43 @@
     }
 
     function startVapiCall() {
-      // Show panel immediately
       const panel = document.getElementById("vapi-panel");
       panel.classList.remove("hidden");
       document.getElementById("vapi-call-status").innerText = "Connecting…";
       document.getElementById("vapi-header-icon").className = "relative flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-white text-lg";
 
-      // Clear old transcript
+      // Clear transcript
       document.getElementById("vapi-transcript").innerHTML = `
         <div class="flex justify-center">
           <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">Conversation started</span>
         </div>
       `;
 
-      // Init SDK if not done
-      if (!vapiInstance) {
+      if (!vapiInstance && window.vapiSDK && window.vapiSDK.run) {
         initVapi();
       }
 
-      if (vapiInstance) {
+      if (vapiInstance && typeof vapiInstance.start === "function") {
         try {
           vapiInstance.start(VAPI_ASSISTANT_ID);
         } catch (e) {
           console.error("Failed to start VAPI call:", e);
-          addTranscriptBubble("system", "Could not start call. Please check your connection.");
+          addTranscriptBubble("system", "Could not start call. Please check microphone permissions.");
         }
+      } else {
+        setTimeout(() => {
+          if (vapiInstance && typeof vapiInstance.start === "function") {
+            vapiInstance.start(VAPI_ASSISTANT_ID);
+          } else {
+            document.getElementById("vapi-call-status").innerText = "Tap Floating Mic";
+            addTranscriptBubble("system", "Please allow microphone access or tap the floating mic in the bottom corner.");
+          }
+        }, 800);
       }
     }
 
     function endVapiCall() {
-      if (vapiInstance) {
+      if (vapiInstance && typeof vapiInstance.stop === "function") {
         try { vapiInstance.stop(); } catch(e) {}
       }
       isVapiCallActive = false;
