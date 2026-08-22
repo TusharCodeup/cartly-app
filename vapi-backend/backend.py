@@ -535,8 +535,17 @@ def root():
 @app.get("/items")
 def get_items(session_id: str = "default", db: Session = Depends(get_db)):
     try:
-        items = _active_query(db, session_id).order_by(ShoppingItem.category).all()
-        return {"count": len(items), "items": [to_dto(i) for i in items]}
+        items = _active_query(db, session_id).order_by(ShoppingItem.id.desc()).all()
+        content = {"count": len(items), "items": [to_dto(i) for i in items]}
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
     except Exception as e:
         logger.exception("Database query error in get_items, attempting auto-repair: %s", str(e))
         db.rollback()
