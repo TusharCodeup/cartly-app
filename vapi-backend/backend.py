@@ -222,9 +222,21 @@ def get_session_id(payload: Dict[str, Any]) -> str:
     return "default"
 
 
+INVALID_ITEM_NAMES = {
+    "hello", "hi", "hey", "hola", "greetings", "good morning", "good afternoon", "good evening",
+    "how are you", "what's up", "bye", "goodbye", "ok", "okay", "yes", "no", "yep", "nope",
+    "thanks", "thank you", "test", "testing", "item", "nothing", "anything", "none", "something",
+}
+
+
 def handle_add_item(db: Session, session_id: str, args: dict) -> str:
     parsed = AddItemArgs(**args)
     norm = normalize_name(parsed.itemName)
+
+    # Filter out accidental conversational greetings / filler words
+    if norm in INVALID_ITEM_NAMES or len(norm) < 2:
+        return "Hi there! What grocery item would you like me to add to your list?"
+
     category = detect_category(parsed.itemName, parsed.category)
 
     existing = _active_query(db, session_id).filter(ShoppingItem.normalized_name == norm).first()

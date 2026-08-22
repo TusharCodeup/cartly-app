@@ -178,7 +178,10 @@
     <div class="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
       <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <h2 id="cart-drawer-title" class="font-serif text-lg font-bold">Your List (0)</h2>
-        <button onclick="toggleCartDrawer(false)" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+        <div class="flex items-center gap-3">
+          <button onclick="clearAllItems()" class="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors">Clear all</button>
+          <button onclick="toggleCartDrawer(false)" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+        </div>
       </div>
       <div id="cart-items-container" class="flex-1 overflow-y-auto px-5 py-4">
       </div>
@@ -607,6 +610,19 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemName })
+        });
+        await fetchBackendItems();
+      } catch(e) {}
+    }
+
+    async function clearAllItems() {
+      if (!confirm("Are you sure you want to clear your shopping list?")) return;
+      showToast("Cleared your shopping list");
+      try {
+        await fetch(`${BACKEND_URL}/clear_list`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
         });
         await fetchBackendItems();
       } catch(e) {}
