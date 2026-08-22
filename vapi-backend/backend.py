@@ -496,21 +496,60 @@ def get_replenishment(session_id: str = "default", db: Session = Depends(get_db)
 
 
 # -------------------------------------------------------------
-# Flat JSON API routes (for web frontend & direct tool calls)
+# Flat JSON & GET/POST API routes (for VAPI tool calls & web frontend)
 # -------------------------------------------------------------
 
-@app.post("/{tool_name}")
-@app.post("/dev/{tool_name}")
-def call_tool_route(tool_name: str, args: Optional[Dict[str, Any]] = None, session_id: str = "default", db: Session = Depends(get_db)):
-    if args is None:
-        args = {}
+@app.api_route("/{tool_name}", methods=["GET", "POST"])
+@app.api_route("/dev/{tool_name}", methods=["GET", "POST"])
+async def call_tool_route(
+    tool_name: str,
+    request: Request,
+    args: Optional[Dict[str, Any]] = None,
+    session_id: str = "default",
+    db: Session = Depends(get_db)
+):
+    if tool_name in ["items", "replenishment", "vapi"]:
+        raise HTTPException(status_code=404, detail="Reserved endpoint")
+
     handler = TOOL_HANDLERS.get(tool_name)
     if handler is None:
         raise HTTPException(status_code=404, detail=f"No handler named '{tool_name}'")
+
+    merged_args: Dict[str, Any] = {}
+
+    # Extract GET query parameters
+    query_params = dict(request.query_params)
+    for k, v in query_params.items():
+        # normalize snake_case keys from VAPI (item_name -> itemName)
+        norm_k = k
+        if k == "item_name": norm_k = "itemName"
+        elif k == "max_price": norm_k = "maxPrice"
+        merged_args[norm_k] = v
+
+    # Extract POST JSON body if available
+    if request.method == "POST":
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                for k, v in body.items():
+                    norm_k = k
+                    if k == "item_name": norm_k = "itemName"
+                    elif k == "max_price": norm_k = "maxPrice"
+                    merged_args[norm_k] = v
+        except Exception:
+            pass
+
+    if args:
+        merged_args.update(args)
+
     try:
-        return {"status": "success", "result": handler(db, session_id, args)}
+        res = handler(db, session_id, merged_args)
+        return {"status": "success", "result": res}
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=e.errors())
+    except Exception as e:
+        logger.exception("Error executing tool %s: %s", tool_name, str(e))
+        return {"status": "error", "result": f"Execution error: {str(e)}"}
 
 
 if __name__ == "__main__":
