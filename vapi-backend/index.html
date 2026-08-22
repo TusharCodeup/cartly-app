@@ -548,7 +548,7 @@
 
     async function fetchBackendItems() {
       try {
-        const res = await fetch(`${BACKEND_URL}/items`);
+        const res = await fetch(`${BACKEND_URL}/items?_t=${Date.now()}`);
         if (res.ok) {
           const data = await res.json();
           dbItems = data.items || [];
@@ -733,7 +733,7 @@
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.tint} text-xl">${cat.emoji}</span>
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-semibold text-slate-800">${item.itemName}</p>
-              <p class="text-xs text-slate-400">$${price.toFixed(2)}${item.unit ? ' · ' + item.unit : ''} · <span class="text-slate-500 font-medium">${item.category || 'Grocery'}</span></p>
+              <p class="text-xs text-slate-500">$${price.toFixed(2)}</p>
             </div>
             <div class="flex items-center gap-1 rounded-full bg-slate-100 px-1">
               <button onclick="updateDbItemQty('${item.itemName.replace(/'/g, "\\'")}', ${qty - 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
