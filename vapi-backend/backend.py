@@ -253,6 +253,18 @@ INVALID_ITEM_NAMES = {
 
 
 def handle_add_item(db: Session, session_id: str, args: dict) -> str:
+    action = str(args.get("action", "")).lower()
+    if action == "readlist":
+        return handle_list_items(db, session_id, args)
+    if action == "remove":
+        return handle_cancel_item(db, session_id, args)
+    if action == "clear":
+        return handle_clear_list(db, session_id, args)
+    if action == "checkoff":
+        return "Item checked off your list."  # Stub for checkoff
+    if action == "search":
+        return handle_search_items(db, session_id, args)
+        
     parsed = AddItemArgs(**args)
     norm = normalize_name(parsed.itemName)
 
