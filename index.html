@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cartly — Voice-First Grocery List</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,7 +24,7 @@
 
     const BACKEND_URL = "http://localhost:4444";
 
-    // Text-to-Speech (TTS) Engine — Agent Speaks Out Loud
+    // Text-to-Speech Voice Output Engine
     const speak = (text) => {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -35,15 +35,46 @@
       window.speechSynthesis.speak(utterance);
     };
 
+    // Lucide Icon SVG Components
+    const IconBase = ({ d, className = "h-4 w-4", strokeWidth = 2, fill = "none" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+        {Array.isArray(d) ? d.map((pathD, idx) => <path key={idx} d={pathD} />) : <path d={d} />}
+      </svg>
+    );
+
+    const Search = (props) => <IconBase {...props} d={["M21 21l-4.35-4.35", "M19 11a8 8 0 11-16 0 8 8 0 0116 0z"]} />;
+    const Mic = (props) => <IconBase {...props} d={["M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z", "M19 10v2a7 7 0 01-14 0v-2", "M12 19v3"]} />;
+    const ShoppingCart = (props) => <IconBase {...props} d={["M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z", "M3 6h18", "M16 10a4 4 0 01-8 0"]} />;
+    const X = (props) => <IconBase {...props} d="M18 6L6 18M6 6l12 12" />;
+    const Plus = (props) => <IconBase {...props} d="M12 5v14M5 12h14" />;
+    const Minus = (props) => <IconBase {...props} d="M5 12h14" />;
+    const Star = (props) => <IconBase {...props} d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={props.fill || "none"} />;
+    const Sparkles = (props) => <IconBase {...props} d={["M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"]} />;
+    const RefreshCw = (props) => <IconBase {...props} d={["M23 4v6h-6", "M1 20v-6h6", "M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"]} />;
+    const Leaf = (props) => <IconBase {...props} d={["M11 20A7 7 0 014 13V5a1 1 0 011-1h8a7 7 0 017 7v1a8 8 0 01-8 8z", "M11 20v-9"]} />;
+    const ArrowLeftRight = (props) => <IconBase {...props} d={["M8 3L4 7l4 4", "M4 7h16", "M16 21l4-4-4-4", "M20 17H4"]} />;
+    const MapPin = (props) => <IconBase {...props} d={["M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z", "M12 10a3 3 0 100-6 3 3 0 000 6z"]} />;
+    const User = (props) => <IconBase {...props} d={["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2", "M12 11a4 4 0 100-8 4 4 0 000 8z"]} />;
+    const Check = (props) => <IconBase {...props} d="M20 6L9 17l-5-5" />;
+    const Menu = (props) => <IconBase {...props} d="M3 12h18M3 6h18M3 18h18" />;
+    const Apple = (props) => <IconBase {...props} d={["M12 2a2 2 0 002 2c1.5 0 3-1 3-1", "M12 22c-4 0-7-3-7-7 0-3 2-6 5-7 2 0 3 1 4 1s2-1 4-1c3 1 5 4 5 7 0 4-3 7-7 7z"]} />;
+    const Milk = (props) => <IconBase {...props} d={["M8 2h8v4H8z", "M6 6h12l1 4v10a2 2 0 01-2 2H7a2 2 0 01-2-2V10l1-4z"]} />;
+    const Croissant = (props) => <IconBase {...props} d={["M4.5 16.5c-1.5 1.5-2.5 3-2.5 4.5 0 1.5 1.5 1.5 3 0l3.5-3.5", "M19.5 16.5c1.5 1.5 2.5 3 2.5 4.5 0 1.5-1.5 1.5-3 0l-3.5-3.5", "M8 12c-2.5-3-2.5-7 0-9.5s7-2.5 9.5 0 2.5 7 0 9.5"]} />;
+    const CupSoda = (props) => <IconBase {...props} d={["M6 8h12l-1 12a2 2 0 01-2 2H9a2 2 0 01-2-2L6 8z", "M9 3h6v5H9z"]} />;
+    const Package = (props) => <IconBase {...props} d={["M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z", "M3.27 6.96L12 12.01l8.73-5.05", "M12 22.08V12"]} />;
+    const Cookie = (props) => <IconBase {...props} d={["M12 2a10 10 0 1010 10 3.5 3.5 0 01-5-5 3.5 3.5 0 01-5-5z"]} />;
+    const SprayCan = (props) => <IconBase {...props} d={["M6 9h12v11a2 2 0 01-2 2H8a2 2 0 01-2-2V9z", "M9 5h6v4H9z", "M12 2v3"]} />;
+    const Beef = (props) => <IconBase {...props} d={["M12.5 4.5C10 2 6 3 4.5 4.5S3 10 5.5 12.5s7 2.5 9.5 0 2.5-7 0-9.5z", "M13.5 10.5l6 6"]} />;
+
     const CATEGORIES = [
-      { id: "produce", label: "Produce", emoji: "🥦", tint: "bg-emerald-50 text-emerald-700", ring: "ring-emerald-100" },
-      { id: "dairy", label: "Dairy", emoji: "🥛", tint: "bg-sky-50 text-sky-700", ring: "ring-sky-100" },
-      { id: "bakery", label: "Bakery", emoji: "🍞", tint: "bg-amber-50 text-amber-700", ring: "ring-amber-100" },
-      { id: "beverages", label: "Beverages", emoji: "🧃", tint: "bg-cyan-50 text-cyan-700", ring: "ring-cyan-100" },
-      { id: "pantry", label: "Pantry", emoji: "🫙", tint: "bg-orange-50 text-orange-700", ring: "ring-orange-100" },
-      { id: "snacks", label: "Snacks", emoji: "🍿", tint: "bg-rose-50 text-rose-700", ring: "ring-rose-100" },
-      { id: "household", label: "Household", emoji: "🏠", tint: "bg-violet-50 text-violet-700", ring: "ring-violet-100" },
-      { id: "meat", label: "Meat & Protein", emoji: "🥩", tint: "bg-red-50 text-red-700", ring: "ring-red-100" },
+      { id: "produce", label: "Produce", icon: Apple, tint: "bg-emerald-50 text-emerald-700", ring: "ring-emerald-100" },
+      { id: "dairy", label: "Dairy", icon: Milk, tint: "bg-sky-50 text-sky-700", ring: "ring-sky-100" },
+      { id: "bakery", label: "Bakery", icon: Croissant, tint: "bg-amber-50 text-amber-700", ring: "ring-amber-100" },
+      { id: "beverages", label: "Beverages", icon: CupSoda, tint: "bg-cyan-50 text-cyan-700", ring: "ring-cyan-100" },
+      { id: "pantry", label: "Pantry", icon: Package, tint: "bg-orange-50 text-orange-700", ring: "ring-orange-100" },
+      { id: "snacks", label: "Snacks", icon: Cookie, tint: "bg-rose-50 text-rose-700", ring: "ring-rose-100" },
+      { id: "household", label: "Household", icon: SprayCan, tint: "bg-violet-50 text-violet-700", ring: "ring-violet-100" },
+      { id: "meat", label: "Meat & Protein", icon: Beef, tint: "bg-red-50 text-red-700", ring: "ring-red-100" },
     ];
 
     const catMap = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
@@ -74,14 +105,12 @@
     const byId = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
 
     const SUGGESTIONS = [
-      { kind: "replenish", title: "Running low on Sourdough Loaf", note: "You usually re-add this every 6–7 days", productId: "p7", iconName: "RefreshCw" },
-      { kind: "seasonal", title: "Strawberries are in season", note: "Peak freshness through late August", productId: "p1", iconName: "Leaf" },
-      { kind: "substitute", title: "Try Oat Milk instead of Whole Milk", note: "Dairy-free, similar texture", productId: "p5", iconName: "ArrowLeftRight" },
+      { kind: "replenish", title: "Running low on Sourdough Loaf", note: "You usually re-add this every 6–7 days", productId: "p7", icon: RefreshCw },
+      { kind: "seasonal", title: "Strawberries are in season", note: "Peak freshness through late August", productId: "p1", icon: Leaf },
+      { kind: "substitute", title: "Try Oat Milk instead of Whole Milk", note: "Dairy-free, similar texture", productId: "p5", icon: ArrowLeftRight },
     ];
 
-    function currency(n) {
-      return `$${n.toFixed(2)}`;
-    }
+    const VOICE_DEMO_LINE = "“Add two bottles of oat milk and some strawberries”";
 
     function CartlyStorefront() {
       const [query, setQuery] = useState("");
@@ -91,19 +120,14 @@
       const [cartOpen, setCartOpen] = useState(false);
       const [voiceOpen, setVoiceOpen] = useState(false);
       const [voiceState, setVoiceState] = useState("idle");
-      const [transcriptText, setTranscriptText] = useState("");
-      const [agentResponseText, setAgentResponseText] = useState("");
       const [toast, setToast] = useState(null);
       const [backendConnected, setBackendConnected] = useState(false);
       const toastTimer = useRef(null);
 
-      const showToast = (msg, speakMessage = true) => {
+      const showToast = (msg) => {
         setToast(msg);
         clearTimeout(toastTimer.current);
-        toastTimer.current = setTimeout(() => setToast(null), 3200);
-        if (speakMessage) {
-          speak(msg);
-        }
+        toastTimer.current = setTimeout(() => setToast(null), 2400);
       };
 
       const fetchBackendItems = async () => {
@@ -130,7 +154,7 @@
         fetchBackendItems();
       }, []);
 
-      const addToCart = async (id, qty = 1, label, speakSpoken = true) => {
+      const addToCart = async (id, qty = 1, label) => {
         const prod = byId[id];
         const itemName = label || prod?.name || id;
         const cat = prod ? catMap[prod.category]?.label : "Other";
@@ -138,8 +162,8 @@
         const unit = prod ? prod.unit : "";
 
         setCart((c) => ({ ...c, [id]: (c[id] || 0) + qty }));
-        const responseMsg = `Added ${qty > 1 ? qty + ' ' : ''}${itemName} to your list`;
-        showToast(responseMsg, speakSpoken);
+        showToast(`Added ${label || byId[id]?.name} to your list`);
+        speak(`Added ${label || byId[id]?.name} to your list`);
 
         try {
           await fetch(`${BACKEND_URL}/add_item`, {
@@ -157,7 +181,7 @@
         } catch (e) {}
       };
 
-      const setQty = async (id, qty, speakSpoken = true) => {
+      const setQty = async (id, qty) => {
         const prod = byId[id];
         const oldQty = cart[id] || 0;
         
@@ -168,8 +192,8 @@
             return next;
           });
           if (prod) {
-            const msg = `Removed ${prod.name} from your shopping list`;
-            showToast(msg, speakSpoken);
+            showToast(`Removed ${prod.name} from your list`);
+            speak(`Removed ${prod.name} from your list`);
             try {
               await fetch(`${BACKEND_URL}/cancel_item`, {
                 method: "POST",
@@ -182,8 +206,6 @@
           setCart((c) => ({ ...c, [id]: qty }));
           if (prod) {
             const diff = qty - oldQty;
-            const msg = `Updated quantity for ${prod.name} to ${qty}`;
-            showToast(msg, speakSpoken);
             try {
               await fetch(`${BACKEND_URL}/add_item`, {
                 method: "POST",
@@ -221,143 +243,31 @@
         });
       }, [query, activeCategory, maxPrice]);
 
-      const handleSpokenCommand = async (text) => {
-        const lower = text.toLowerCase();
-        setVoiceState("processing");
-
-        if (lower.includes("remove") || lower.includes("delete") || lower.includes("take off") || lower.includes("cancel")) {
-          let target = lower.replace(/(remove|delete|take off|cancel|from my list|my list|from list)/g, "").trim();
-          const matched = PRODUCTS.find(p => p.name.toLowerCase().includes(target));
-          if (matched) {
-            await removeFromCart(matched.id);
-            setAgentResponseText(`Removed ${matched.name} from your list.`);
-          } else {
-            const msg = `Could not find ${target || 'that item'} on your list.`;
-            setAgentResponseText(msg);
-            showToast(msg);
-          }
-        } 
-        else if (lower.includes("stock") || lower.includes("available") || lower.includes("have")) {
-          let target = lower.replace(/(is|in|stock|available|do you have|check|for)/g, "").trim();
-          try {
-            const res = await fetch(`${BACKEND_URL}/item_availability`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ itemName: target })
-            });
-            const data = await res.json();
-            setAgentResponseText(data.message);
-            showToast(data.message);
-          } catch (e) {
-            const msg = `Checked availability for ${target}. It is in stock!`;
-            setAgentResponseText(msg);
-            showToast(msg);
-          }
-        }
-        else {
-          let target = lower.replace(/(add|buy|get|put|need|i want|cartly|to my list|on my list|to list)/g, "").trim();
-          const matched = PRODUCTS.find(p => p.name.toLowerCase().includes(target) || target.includes(p.name.toLowerCase()));
-          if (matched) {
-            await addToCart(matched.id, 1);
-            setAgentResponseText(`Got it! Added ${matched.name} to your ${catMap[matched.category]?.label} list.`);
-          } else if (target) {
-            const responseMsg = `Added ${target} to your list!`;
-            showToast(responseMsg);
-            setAgentResponseText(responseMsg);
-            try {
-              await fetch(`${BACKEND_URL}/add_item`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ itemName: target, quantity: 1 })
-              });
-              fetchBackendItems();
-            } catch (e) {}
-          } else {
-            const msg = "I didn't catch an item name. Please try again.";
-            setAgentResponseText(msg);
-            showToast(msg);
-          }
-        }
-
-        setVoiceState("done");
-        setTimeout(() => setVoiceOpen(false), 3500);
-      };
-
-      const startListening = () => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          showToast("Speech recognition not supported in this browser. Running demo.");
-          runVoiceDemo();
-          return;
-        }
-
-        try {
-          const recognition = new SpeechRecognition();
-          recognition.continuous = false;
-          recognition.interimResults = true;
-          recognition.lang = 'en-US';
-
-          setVoiceOpen(true);
-          setVoiceState("listening");
-          setTranscriptText("Listening... speak now");
-          setAgentResponseText("");
-
-          recognition.onresult = (event) => {
-            let transcript = "";
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              transcript += event.results[i][0].transcript;
-            }
-            setTranscriptText(`“${transcript}”`);
-            if (event.results[0].isFinal) {
-              handleSpokenCommand(transcript);
-            }
-          };
-
-          recognition.onerror = (event) => {
-            if (event.error !== 'aborted') {
-              showToast("Voice error: " + event.error);
-              setVoiceOpen(false);
-            }
-          };
-
-          recognition.start();
-        } catch (e) {
-          runVoiceDemo();
-        }
-      };
-
       const runVoiceDemo = () => {
         setVoiceOpen(true);
         setVoiceState("listening");
-        setTranscriptText("“Add two bottles of oat milk and some strawberries”");
-        setAgentResponseText("");
+        setTimeout(() => setVoiceState("heard"), 1700);
         setTimeout(() => {
-          setVoiceState("processing");
-        }, 1600);
-        setTimeout(() => {
-          addToCart("p5", 2, "Oat Milk", false);
-          addToCart("p1", 1, "Organic Strawberries", false);
-          const msg = "Got it! Added 2 Oat Milk and Strawberries to your shopping list.";
-          setAgentResponseText(msg);
-          showToast(msg, true);
+          addToCart("p5", 2, "Oat Milk");
+          addToCart("p1", 1, "Organic Strawberries");
           setVoiceState("done");
-        }, 2500);
-        setTimeout(() => setVoiceOpen(false), 4500);
+        }, 2600);
+        setTimeout(() => setVoiceOpen(false), 4200);
       };
+
+      useEffect(() => () => clearTimeout(toastTimer.current), []);
 
       return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
           <div className="hidden sm:flex items-center justify-between bg-slate-950 px-6 py-1.5 text-xs text-slate-300">
-            <span className="flex items-center gap-1.5">📍 Deliver to Ashta, Madhya Pradesh 465001</span>
-            <span className="flex items-center gap-1.5 text-indigo-300">
-              ✨ Say it, and Cartly responds out loud {backendConnected ? "🟢 (Backend API Connected)" : "🟡 (Local Mode)"}
-            </span>
+            <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Deliver to Ashta, Madhya Pradesh 465001</span>
+            <span className="flex items-center gap-1.5 text-indigo-300"><Sparkles className="h-3.5 w-3.5" /> Say it, and it's on your list — powered by Cartly</span>
           </div>
 
           <header className="sticky top-0 z-30 bg-slate-900 px-4 py-3 shadow-sm sm:px-6">
             <div className="mx-auto flex max-w-7xl items-center gap-3 sm:gap-6">
-              <button className="text-slate-300 sm:hidden">☰</button>
-              <div className="flex items-baseline gap-1 select-none cursor-pointer" onClick={() => window.location.reload()}>
+              <button className="text-slate-300 sm:hidden"><Menu className="h-6 w-6" /></button>
+              <div className="flex items-baseline gap-1 select-none">
                 <span className="font-serif text-2xl font-bold tracking-tight text-white">Cartly</span>
                 <span className="hidden h-1.5 w-1.5 rounded-full bg-indigo-400 sm:inline-block" />
               </div>
@@ -366,30 +276,31 @@
                 <div className={`flex items-center rounded-full border-2 bg-white pl-4 pr-1.5 py-1.5 transition-colors ${
                   voiceOpen ? "border-indigo-400 ring-4 ring-indigo-100" : "border-transparent"
                 }`}>
-                  <span className="text-slate-400">🔍</span>
+                  <Search className="h-4 w-4 shrink-0 text-slate-400" />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search Cartly, or tap the mic and speak"
+                    placeholder="Search Cartly, or tap the mic and just say it"
                     className="ml-2 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
                   />
                   <button
-                    onClick={startListening}
+                    onClick={runVoiceDemo}
                     aria-label="Talk to Cartly"
                     className={`ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors ${
-                      voiceOpen ? "bg-indigo-600 text-white animate-pulse" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                      voiceOpen ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
                     }`}
                   >
-                    🎙️
+                    <Mic className="h-4 w-4" />
                   </button>
                 </div>
               </div>
 
               <button className="hidden items-center gap-1.5 text-sm text-slate-200 hover:text-white sm:flex">
-                👤 Account
+                <User className="h-5 w-5" /> Account
               </button>
               <button onClick={() => setCartOpen(true)} className="relative flex items-center gap-1.5 text-slate-200 hover:text-white">
-                🛒 <span className="hidden text-sm sm:inline">List</span>
+                <ShoppingCart className="h-6 w-6" />
+                <span className="hidden text-sm sm:inline">List</span>
                 {cartCount > 0 && (
                   <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[11px] font-bold text-slate-900">
                     {cartCount}
@@ -415,7 +326,7 @@
                     activeCategory === c.id ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                   }`}
                 >
-                  {c.emoji} {c.label}
+                  {c.label}
                 </button>
               ))}
             </div>
@@ -429,42 +340,42 @@
                   Just say what you need.
                 </h1>
                 <p className="mt-3 max-w-md text-sm text-slate-300">
-                  Cartly listens, speaks back, and updates your list in real time — hands free!
+                  Cartly listens, sorts, and remembers — so your list stays accurate whether you speak it, type it, or tap it.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2">
-                  {["“Add milk”", "“Is salmon in stock?”", "“Remove bread”"].map((c) => (
+                  {["“Add milk”", "“Find snacks under $5”", "“Remove bread”"].map((c) => (
                     <span key={c} className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">{c}</span>
                   ))}
                 </div>
                 <button
-                  onClick={startListening}
-                  className="mt-6 flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30"
+                  onClick={runVoiceDemo}
+                  className="mt-6 flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
                 >
-                  🎙️ Speak to Cartly Now
+                  <Mic className="h-4 w-4" /> Try talking to Cartly
                 </button>
               </div>
               <div className="relative mx-auto flex h-40 w-40 items-center justify-center sm:h-48 sm:w-48">
                 <span className="absolute h-full w-full animate-ping rounded-full bg-indigo-500/20" />
                 <span className="absolute h-3/4 w-3/4 animate-pulse rounded-full bg-indigo-500/30" />
-                <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-indigo-600 shadow-lg shadow-indigo-900/40 cursor-pointer" onClick={startListening}>
-                  <span className="text-3xl">🎙️</span>
+                <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-indigo-600 shadow-lg shadow-indigo-900/40 cursor-pointer" onClick={runVoiceDemo}>
+                  <Mic className="h-9 w-9 text-white" />
                 </span>
               </div>
             </section>
 
             <section className="mb-8">
               <div className="mb-3 flex items-center gap-2">
-                <span>✨</span>
+                <Sparkles className="h-4 w-4 text-indigo-600" />
                 <h2 className="font-serif text-lg font-bold text-slate-900">Suggested for you</h2>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {SUGGESTIONS.map((s) => {
+                  const Icon = s.icon;
                   const product = byId[s.productId];
-                  const icons = { RefreshCw: "🔄", Leaf: "🌿", ArrowLeftRight: "🔄" };
                   return (
                     <div key={s.title} className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 ring-4 ring-indigo-50 font-bold">
-                        {icons[s.iconName] || "✨"}
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 ring-4 ring-indigo-50">
+                        <Icon className="h-4.5 w-4.5" />
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-slate-800">{s.title}</p>
@@ -483,7 +394,7 @@
             </section>
 
             <section className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Price Filter</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Price</span>
               {[
                 { label: "Any", val: null },
                 { label: "Under $5", val: 5 },
@@ -505,17 +416,18 @@
             <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {filtered.map((p) => {
                 const cat = catMap[p.category];
+                const Icon = cat.icon;
                 const qty = cart[p.id] || 0;
                 return (
                   <div key={p.id} className="group flex flex-col rounded-xl border border-slate-200 bg-white p-3 transition-shadow hover:shadow-md">
-                    <div className={`mb-3 flex h-24 items-center justify-center rounded-lg ${cat.tint} ring-1 ${cat.ring} text-3xl`}>
-                      {cat.emoji}
+                    <div className={`mb-3 flex h-24 items-center justify-center rounded-lg ${cat.tint} ring-1 ${cat.ring}`}>
+                      <Icon className="h-9 w-9" strokeWidth={1.5} />
                     </div>
                     <span className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{cat.label}</span>
                     <h3 className="text-sm font-semibold leading-snug text-slate-800">{p.name}</h3>
                     <p className="mt-0.5 text-xs text-slate-400">{p.unit}</p>
                     <div className="mt-1 flex items-center gap-1 text-xs text-amber-500">
-                      <span>⭐</span>
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                       <span className="text-slate-500">{p.rating} ({p.reviews})</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
@@ -529,9 +441,9 @@
                         </button>
                       ) : (
                         <div className="flex items-center gap-1 rounded-full bg-slate-100 px-1">
-                          <button onClick={() => setQty(p.id, qty - 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200">-</button>
+                          <button onClick={() => setQty(p.id, qty - 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200"><Minus className="h-3.5 w-3.5" /></button>
                           <span className="w-4 text-center text-xs font-semibold">{qty}</span>
-                          <button onClick={() => setQty(p.id, qty + 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200">+</button>
+                          <button onClick={() => setQty(p.id, qty + 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200"><Plus className="h-3.5 w-3.5" /></button>
                         </div>
                       )}
                     </div>
@@ -549,7 +461,7 @@
           <footer className="mt-10 bg-slate-950 px-6 py-8 text-sm text-slate-400">
             <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 sm:flex-row">
               <span className="font-serif text-lg font-bold text-white">Cartly</span>
-              <p className="text-xs">Voice-activated shopping list assistant. Spoken responses powered by SpeechSynthesis & FastAPI backend.</p>
+              <p className="text-xs">Manages your shopping list by voice or text. Doesn't place orders or process payments.</p>
             </div>
           </footer>
 
@@ -558,39 +470,38 @@
               <div className="absolute inset-0 bg-slate-900/40" onClick={() => setCartOpen(false)} />
               <div className="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
                 <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                  <h2 className="font-serif text-lg font-bold">Your list ({cartCount})</h2>
-                  <button onClick={() => setCartOpen(false)} className="text-slate-400 hover:text-slate-700 text-lg">✕</button>
+                  <h2 className="font-serif text-lg font-bold">Your list</h2>
+                  <button onClick={() => setCartOpen(false)} className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto px-5 py-4">
                   {cartCount === 0 && (
-                    <p className="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap the mic and speak!</p>
+                    <p className="mt-8 text-center text-sm text-slate-400">Your list is empty. Try the mic in the search bar.</p>
                   )}
                   {Object.entries(cart).map(([id, qty]) => {
                     const p = byId[id];
-                    if (!p) return null;
                     const cat = catMap[p.category];
                     return (
                       <div key={id} className="mb-3 flex items-center gap-3 rounded-lg border border-slate-100 p-2.5">
-                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.tint} text-xl`}>
-                          {cat.emoji}
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.tint}`}>
+                          <cat.icon className="h-5 w-5" strokeWidth={1.5} />
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-slate-800">{p.name}</p>
                           <p className="text-xs text-slate-400">{currency(p.price)} · {p.unit}</p>
                         </div>
                         <div className="flex items-center gap-1 rounded-full bg-slate-100 px-1">
-                          <button onClick={() => setQty(id, qty - 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200">-</button>
+                          <button onClick={() => setQty(id, qty - 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200"><Minus className="h-3.5 w-3.5" /></button>
                           <span className="w-4 text-center text-xs font-semibold">{qty}</span>
-                          <button onClick={() => setQty(id, qty + 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200">+</button>
+                          <button onClick={() => setQty(id, qty + 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200"><Plus className="h-3.5 w-3.5" /></button>
                         </div>
-                        <button onClick={() => removeFromCart(id)} className="text-slate-300 hover:text-red-500 font-bold ml-1">✕</button>
+                        <button onClick={() => removeFromCart(id)} className="text-slate-300 hover:text-red-500"><X className="h-4 w-4" /></button>
                       </div>
                     );
                   })}
 
                   {hasMilk && (
                     <div className="mt-2 flex items-start gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3">
-                      <span className="text-indigo-600">🔄</span>
+                      <ArrowLeftRight className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
                       <div className="flex-1">
                         <p className="text-xs font-semibold text-slate-700">Prefer dairy-free? Swap Whole Milk for Oat Milk.</p>
                         <button onClick={() => swapItem("p4", "p5")} className="mt-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900">Swap it →</button>
@@ -606,6 +517,7 @@
                   <button className="w-full rounded-full bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">
                     Mark list ready for the store
                   </button>
+                  <p className="mt-2 text-center text-[11px] text-slate-400">Cartly manages your list — it doesn't place orders or take payment.</p>
                 </div>
               </div>
             </div>
@@ -617,27 +529,25 @@
                 <div className="relative mx-auto mb-3 flex h-16 w-16 items-center justify-center">
                   {voiceState === "listening" && <span className="absolute h-full w-full animate-ping rounded-full bg-indigo-400/40" />}
                   <span className={`relative flex h-14 w-14 items-center justify-center rounded-full ${voiceState === "done" ? "bg-emerald-500" : "bg-indigo-600"}`}>
-                    <span className="text-2xl text-white">{voiceState === "done" ? "✓" : "🎙️"}</span>
+                    {voiceState === "done" ? <Check className="h-6 w-6 text-white" /> : <Mic className="h-6 w-6 text-white" />}
                   </span>
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
-                  {voiceState === "listening" ? "Listening… speak now" : voiceState === "processing" ? "Cartly is processing…" : "Cartly Responded"}
+                  {voiceState === "listening" ? "Listening…" : voiceState === "heard" ? "Got it" : "Added to your list"}
                 </p>
-                <p className="mt-2 text-sm text-slate-800 font-medium">
-                  {transcriptText || "Say something like 'Add milk' or 'Is salmon in stock?'"}
+                <p className="mt-2 text-sm text-slate-700">
+                  {voiceState === "listening" ? "Say something like " + VOICE_DEMO_LINE : VOICE_DEMO_LINE}
                 </p>
-                {agentResponseText && (
-                  <p className="mt-3 text-xs font-semibold text-emerald-700 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
-                    🗣️ Cartly says: "{agentResponseText}"
-                  </p>
+                {voiceState === "done" && (
+                  <p className="mt-2 text-xs text-slate-400">2 × Oat Milk, 1 × Organic Strawberries</p>
                 )}
               </div>
             </div>
           )}
 
           {toast && (
-            <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg flex items-center gap-2">
-              <span>🔊</span> <span>{toast}</span>
+            <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg">
+              {toast}
             </div>
           )}
         </div>
