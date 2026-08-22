@@ -434,24 +434,28 @@ async def vapi_tools(request: Request, db: Session = Depends(get_db), _auth=Depe
 
     results = []
     for call in calls:
-        handler = TOOL_HANDLERS.get(call["name"])
+        target = call.get("name", "")
+        handler = (
+            TOOL_HANDLERS.get(target)
+            or TOOL_HANDLERS.get(target.lower())
+            or TOOL_HANDLERS.get(target.capitalize())
+            or TOOL_HANDLERS.get(target.upper())
+        )
         try:
             if handler is None:
-                text = f"Tool '{call['name']}' isn't implemented on this server"
+                text = f"Tool '{target}' isn't implemented on this server"
             else:
-                text = handler(db, session_id, call["arguments"])
+                call_args = normalize_arguments(call.get("arguments", {}))
+                text = handler(db, session_id, call_args)
         except ValidationError:
             db.rollback()
             text = "I didn't quite catch the item or quantity for that -- could you say it again?"
         except Exception:
             db.rollback()
-            logger.exception("Tool call failed: %s", call.get("name"))
+            logger.exception("Tool call failed: %s", target)
             text = "Something went wrong on my end -- mind trying that again?"
-        results.append({"toolCallId": call["id"], "result": text})
+        results.append({"toolCallId": call.get("id", "call_1"), "result": text})
 
-    # Always HTTP 200: VAPI ignores any other status code entirely, so a
-    # non-200 here wouldn't surface as a spoken error -- it would just look
-    # like a dropped tool call.
     return {"results": results}
 
 
