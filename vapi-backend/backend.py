@@ -40,15 +40,11 @@ app = FastAPI(
 )
 
 # ---- CORS -------------------------------------------------------------
-# Restrict to known origins in production. Wildcard + credentials is both a
-# CORS-spec violation (browsers reject it) and unnecessary here -- the
-# frontend doesn't need cookies to talk to this API.
-ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -480,6 +476,8 @@ def root():
     }
 
 
+@app.post("/list_items")
+@app.get("/list_items")
 @app.get("/items")
 def get_items(session_id: str = "default", db: Session = Depends(get_db)):
     items = _active_query(db, session_id).order_by(ShoppingItem.category).all()
@@ -498,22 +496,21 @@ def get_replenishment(session_id: str = "default", db: Session = Depends(get_db)
 
 
 # -------------------------------------------------------------
-# Dev-only convenience routes: flat JSON in, string out, no VAPI
-# envelope required. Handy for curl/Postman while building. Not
-# what VAPI calls -- point VAPI's tool server URL at /vapi/tools.
+# Flat JSON API routes (for web frontend & direct tool calls)
 # -------------------------------------------------------------
 
-if os.environ.get("ENABLE_DEV_ROUTES", "true").lower() == "true":
-
-    @app.post("/dev/{tool_name}")
-    def dev_call_tool(tool_name: str, args: Dict[str, Any], session_id: str = "default", db: Session = Depends(get_db)):
-        handler = TOOL_HANDLERS.get(tool_name)
-        if handler is None:
-            raise HTTPException(status_code=404, detail=f"No handler named '{tool_name}'")
-        try:
-            return {"result": handler(db, session_id, args)}
-        except ValidationError as e:
-            raise HTTPException(status_code=422, detail=e.errors())
+@app.post("/{tool_name}")
+@app.post("/dev/{tool_name}")
+def call_tool_route(tool_name: str, args: Optional[Dict[str, Any]] = None, session_id: str = "default", db: Session = Depends(get_db)):
+    if args is None:
+        args = {}
+    handler = TOOL_HANDLERS.get(tool_name)
+    if handler is None:
+        raise HTTPException(status_code=404, detail=f"No handler named '{tool_name}'")
+    try:
+        return {"status": "success", "result": handler(db, session_id, args)}
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
 
 
 if __name__ == "__main__":
