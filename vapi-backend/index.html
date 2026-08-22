@@ -55,9 +55,11 @@
         </div>
       </div>
 
-      <button class="hidden items-center gap-1.5 text-sm text-slate-200 hover:text-white sm:flex">
-        👤 Account
+      <!-- Live DB Inspector Button -->
+      <button onclick="toggleDbModal(true)" class="hidden items-center gap-1.5 text-xs text-indigo-300 bg-slate-800 px-3 py-1.5 rounded-full hover:bg-slate-700 sm:flex">
+        🟢 Live DB Status
       </button>
+
       <button onclick="toggleCartDrawer(true)" class="relative flex items-center gap-1.5 text-slate-200 hover:text-white">
         🛒 <span class="hidden text-sm sm:inline">List</span>
         <span id="cart-badge" class="hidden absolute -right-2 -top-2 h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[11px] font-bold text-slate-900">
@@ -158,7 +160,7 @@
   <footer class="mt-10 bg-slate-950 px-6 py-8 text-sm text-slate-400">
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 sm:flex-row">
       <span class="font-serif text-lg font-bold text-white">Cartly</span>
-      <p class="text-xs">Backend Cloud API: <code class="text-indigo-300">https://cartly-backend-02g1.onrender.com</code></p>
+      <p class="text-xs">Backend Cloud API: <a href="https://cartly-backend-02g1.onrender.com/items" target="_blank" class="text-indigo-300 underline">https://cartly-backend-02g1.onrender.com</a></p>
     </div>
   </footer>
 
@@ -181,6 +183,24 @@
         <button class="w-full rounded-full bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">
           Mark list ready for the store
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Database Status Modal -->
+  <div id="db-modal-backdrop" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-serif text-lg font-bold text-slate-900">🟢 Live Render Database Connection</h3>
+        <button onclick="toggleDbModal(false)" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+      </div>
+      <div class="mt-4 space-y-3 text-xs text-slate-600">
+        <p><strong>Cloud API URL:</strong> <a href="https://cartly-backend-02g1.onrender.com" target="_blank" class="text-indigo-600 underline">https://cartly-backend-02g1.onrender.com</a></p>
+        <p><strong>VAPI Tools Webhook:</strong> <code class="bg-slate-100 p-1 rounded">https://cartly-backend-02g1.onrender.com/vapi/tools</code></p>
+        <p><strong>Active Items in Database:</strong> <span id="db-active-count" class="font-bold text-slate-900">Loading...</span></p>
+        <div class="mt-4 flex gap-2">
+          <a href="https://cartly-backend-02g1.onrender.com/items" target="_blank" class="flex-1 rounded-lg bg-indigo-50 text-indigo-700 p-2 text-center font-semibold hover:bg-indigo-100">View Raw Database Items (JSON)</a>
+        </div>
       </div>
     </div>
   </div>
@@ -250,6 +270,12 @@
       } else {
         startVapiCall();
       }
+    }
+
+    function toggleDbModal(open) {
+      const el = document.getElementById("db-modal-backdrop");
+      if (open) el.classList.remove("hidden");
+      else el.classList.add("hidden");
     }
 
     function startVapiCall() {
@@ -364,10 +390,11 @@
 
     async function fetchBackendItems() {
       try {
-        const res = await fetch(`${BACKEND_URL}/list_items`, { method: "POST" });
+        const res = await fetch(`${BACKEND_URL}/items`);
         if (res.ok) {
           const data = await res.json();
           document.getElementById("backend-status-bar").innerHTML = "✨ Say it, and it's on your list — powered by Cartly 🟢 (Render Cloud Backend Connected)";
+          document.getElementById("db-active-count").innerText = `${data.count || 0} active items`;
           cart = {};
           (data.items || []).forEach(item => {
             const matched = PRODUCTS.find(p => p.name.toLowerCase() === item.itemName.toLowerCase());
@@ -576,6 +603,9 @@
     renderCartDrawer();
     fetchBackendItems();
     initVapiSDK();
+
+    // Auto-poll live database every 4 seconds to sync voice additions instantly
+    setInterval(fetchBackendItems, 4000);
   </script>
 </body>
 </html>
