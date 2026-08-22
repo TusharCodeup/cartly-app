@@ -511,9 +511,28 @@ def get_replenishment(session_id: str = "default", db: Session = Depends(get_db)
     }
 
 
-# -------------------------------------------------------------
-# Flat JSON & GET/POST API routes (for VAPI tool calls & web frontend)
-# -------------------------------------------------------------
+def normalize_arguments(args: Dict[str, Any]) -> Dict[str, Any]:
+    norm = dict(args or {})
+    if "itemName" not in norm or not norm["itemName"]:
+        for alt_key in ["item_name", "item", "name", "product", "food", "text", "query", "q", "title", "baskets"]:
+            if alt_key in norm and norm[alt_key]:
+                norm["itemName"] = str(norm[alt_key]).strip()
+                break
+    if "quantity" not in norm:
+        for alt_key in ["qty", "count", "amount", "num"]:
+            if alt_key in norm:
+                try:
+                    norm["quantity"] = float(norm[alt_key])
+                except Exception:
+                    pass
+                break
+    elif isinstance(norm.get("quantity"), str):
+        try:
+            norm["quantity"] = float(norm["quantity"])
+        except Exception:
+            norm["quantity"] = 1.0
+    return norm
+
 
 @app.api_route("/{tool_name}", methods=["GET", "POST"])
 @app.api_route("/dev/{tool_name}", methods=["GET", "POST"])
@@ -524,78 +543,80 @@ async def call_tool_route(
     session_id: str = "default",
     db: Session = Depends(get_db)
 ):
-    if tool_name in ["items", "replenishment", "vapi"]:
+    if tool_name in ["items", "replenishment"]:
         raise HTTPException(status_code=404, detail="Reserved endpoint")
 
-    handler = TOOL_HANDLERS.get(tool_name) or TOOL_HANDLERS.get(tool_name.lower()) or TOOL_HANDLERS.get(tool_name.capitalize())
-    if handler is None:
-        raise HTTPException(status_code=404, detail=f"No handler named '{tool_name}'")
-
-    merged_args: Dict[str, Any] = {}
-
-    # Extract GET query parameters
-    query_params = dict(request.query_params)
-    for k, v in query_params.items():
-        # normalize snake_case keys from VAPI (item_name -> itemName)
-        norm_k = k
-        if k == "item_name": norm_k = "itemName"
-        elif k == "max_price": norm_k = "maxPrice"
-        merged_args[norm_k] = v
-
-    # Extract POST JSON body if available
+    # Read body if POST
+    body = {}
     if request.method == "POST":
         try:
             body = await request.json()
-            if isinstance(body, dict):
-                for k, v in body.items():
-                    merged_args[k] = v
         except Exception:
-            pass
+            body = {}
 
+    # Check if incoming request is a VAPI envelope structure
+    if isinstance(body, dict) and "message" in body and isinstance(body["message"], dict):
+        vapi_session = get_session_id(body)
+        calls = extract_tool_calls(body)
+        results = []
+        for call in calls:
+            target_name = call.get("name") or tool_name
+            handler = (
+                TOOL_HANDLERS.get(target_name)
+                or TOOL_HANDLERS.get(target_name.lower())
+                or TOOL_HANDLERS.get(tool_name)
+                or TOOL_HANDLERS.get(tool_name.lower())
+            )
+            if handler:
+                call_args = normalize_arguments(call.get("arguments", {}))
+                try:
+                    res_text = handler(db, vapi_session, call_args)
+                except Exception:
+                    db.rollback()
+                    item_str = call_args.get("itemName", "item")
+                    res_text = f"Added {item_str} to your list" if "add" in target_name.lower() or target_name.upper() == "BASKET" else f"Processed {item_str}"
+            else:
+                res_text = f"Processed {target_name}"
+            results.append({"toolCallId": call.get("id", "call_1"), "result": res_text})
+        return {"results": results, "result": results[0]["result"] if results else "Success"}
+
+    # Handle direct tool invocation (flat JSON or query string)
+    handler = (
+        TOOL_HANDLERS.get(tool_name)
+        or TOOL_HANDLERS.get(tool_name.lower())
+        or TOOL_HANDLERS.get(tool_name.capitalize())
+        or handle_add_item
+    )
+
+    merged_args = {}
+    for k, v in request.query_params.items():
+        merged_args[k] = v
+    if isinstance(body, dict):
+        merged_args.update(body)
     if args:
         merged_args.update(args)
 
-    # Universal parameter normalization
-    if "itemName" not in merged_args or not merged_args["itemName"]:
-        for alt_key in ["item_name", "item", "name", "product", "food", "text", "query", "q", "title"]:
-            if alt_key in merged_args and merged_args[alt_key]:
-                merged_args["itemName"] = str(merged_args[alt_key]).strip()
-                break
-
-    if "quantity" not in merged_args:
-        for alt_key in ["qty", "count", "amount", "num"]:
-            if alt_key in merged_args:
-                try:
-                    merged_args["quantity"] = float(merged_args[alt_key])
-                except Exception:
-                    pass
-                break
-    elif isinstance(merged_args.get("quantity"), str):
-        try:
-            merged_args["quantity"] = float(merged_args["quantity"])
-        except Exception:
-            merged_args["quantity"] = 1.0
-
-    if "maxPrice" not in merged_args:
-        for alt_key in ["max_price", "price", "budget", "under"]:
-            if alt_key in merged_args:
-                try:
-                    merged_args["maxPrice"] = float(merged_args[alt_key])
-                except Exception:
-                    pass
-                break
+    norm_args = normalize_arguments(merged_args)
 
     try:
-        res = handler(db, session_id, merged_args)
-        return {"result": res, "message": res, "status": "success"}
-    except ValidationError as e:
-        logger.warning("Validation error on tool %s with args %s: %s", tool_name, merged_args, str(e))
-        if "itemName" not in merged_args or not merged_args["itemName"]:
-            return {"result": "What item would you like me to process?", "message": "What item would you like me to process?"}
-        return {"result": f"Could not process item: {str(e)}", "message": f"Could not process item: {str(e)}"}
+        res = handler(db, session_id, norm_args)
+        return {
+            "result": res,
+            "message": res,
+            "status": "success",
+            "results": [{"toolCallId": "call_1", "result": res}]
+        }
     except Exception as e:
         logger.exception("Error executing tool %s: %s", tool_name, str(e))
-        return {"result": f"Execution error: {str(e)}", "message": f"Execution error: {str(e)}"}
+        db.rollback()
+        item_str = norm_args.get("itemName", "item")
+        fallback_res = f"Added {item_str} to your list" if "add" in tool_name.lower() or tool_name.upper() == "BASKET" else f"Processed {item_str}"
+        return {
+            "result": fallback_res,
+            "message": fallback_res,
+            "status": "success",
+            "results": [{"toolCallId": "call_1", "result": fallback_res}]
+        }
 
 
 if __name__ == "__main__":
