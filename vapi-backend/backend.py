@@ -538,24 +538,54 @@ async def call_tool_route(
             body = await request.json()
             if isinstance(body, dict):
                 for k, v in body.items():
-                    norm_k = k
-                    if k == "item_name": norm_k = "itemName"
-                    elif k == "max_price": norm_k = "maxPrice"
-                    merged_args[norm_k] = v
+                    merged_args[k] = v
         except Exception:
             pass
 
     if args:
         merged_args.update(args)
 
+    # Universal parameter normalization
+    if "itemName" not in merged_args or not merged_args["itemName"]:
+        for alt_key in ["item_name", "item", "name", "product", "food", "text", "query", "q", "title"]:
+            if alt_key in merged_args and merged_args[alt_key]:
+                merged_args["itemName"] = str(merged_args[alt_key]).strip()
+                break
+
+    if "quantity" not in merged_args:
+        for alt_key in ["qty", "count", "amount", "num"]:
+            if alt_key in merged_args:
+                try:
+                    merged_args["quantity"] = float(merged_args[alt_key])
+                except Exception:
+                    pass
+                break
+    elif isinstance(merged_args.get("quantity"), str):
+        try:
+            merged_args["quantity"] = float(merged_args["quantity"])
+        except Exception:
+            merged_args["quantity"] = 1.0
+
+    if "maxPrice" not in merged_args:
+        for alt_key in ["max_price", "price", "budget", "under"]:
+            if alt_key in merged_args:
+                try:
+                    merged_args["maxPrice"] = float(merged_args[alt_key])
+                except Exception:
+                    pass
+                break
+
     try:
         res = handler(db, session_id, merged_args)
-        return {"status": "success", "result": res}
+        return {"result": res, "message": res, "status": "success"}
     except ValidationError as e:
-        raise HTTPException(status_code=422, detail=e.errors())
+        logger.warning("Validation error on tool %s with args %s: %s", tool_name, merged_args, str(e))
+        if "itemName" not in merged_args or not merged_args["itemName"]:
+            return {"result": "What item would you like me to process?", "message": "What item would you like me to process?"}
+        return {"result": f"Could not process item: {str(e)}", "message": f"Could not process item: {str(e)}"}
     except Exception as e:
         logger.exception("Error executing tool %s: %s", tool_name, str(e))
-        return {"status": "error", "result": f"Execution error: {str(e)}"}
+        return {"result": f"Execution error: {str(e)}", "message": f"Execution error: {str(e)}"}
 
 
 if __name__ == "__main__":
