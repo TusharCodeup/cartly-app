@@ -197,22 +197,35 @@ def _active_query(db: Session, session_id: str = "default"):
 
 def extract_tool_calls(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     message = payload.get("message", {}) or {}
-    raw_calls = message.get("toolCallList") or message.get("toolCalls") or []
+    
+    # 1. Try toolWithToolCallList (Vapi standard Server URL format)
+    tool_list = message.get("toolWithToolCallList", [])
+    if tool_list:
+        calls = []
+        for item in tool_list:
+            tc = item.get("toolCall", {})
+            call_id = tc.get("id")
+            fn = tc.get("function", {})
+            name = fn.get("name")
+            args = fn.get("arguments", "{}")
+            if isinstance(args, str):
+                try: args = json.loads(args)
+                except: args = {}
+            calls.append({"id": call_id, "name": name, "arguments": args})
+        return calls
 
+    # 2. Try raw toolCallList or toolCalls (Fallback / Custom format)
+    raw_calls = message.get("toolCallList") or message.get("toolCalls") or []
     calls = []
     for raw in raw_calls:
         call_id = raw.get("id")
         fn = raw.get("function") or {}
         name = fn.get("name") or raw.get("name")
-        args = fn.get("arguments", None)
-        if args is None:
-            args = raw.get("arguments", {})
+        args = fn.get("arguments", {})
         if isinstance(args, str):
-            try:
-                args = json.loads(args)
-            except json.JSONDecodeError:
-                args = {}
-        calls.append({"id": call_id, "name": name, "arguments": args or {}})
+            try: args = json.loads(args)
+            except: args = {}
+        calls.append({"id": call_id, "name": name, "arguments": args})
     return calls
 
 
