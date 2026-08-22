@@ -214,7 +214,17 @@ def extract_tool_calls(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
             calls.append({"id": call_id, "name": name, "arguments": args})
         return calls
 
-    # 2. Try raw toolCallList or toolCalls (Fallback / Custom format)
+    # 2. Try legacy function-call
+    if message.get("type") == "function-call" and "functionCall" in message:
+        fc = message["functionCall"]
+        name = fc.get("name")
+        args = fc.get("parameters", {})
+        if isinstance(args, str):
+            try: args = json.loads(args)
+            except: args = {}
+        return [{"id": "call_legacy", "name": name, "arguments": args}]
+
+    # 3. Try raw toolCallList or toolCalls (Fallback / Custom format)
     raw_calls = message.get("toolCallList") or message.get("toolCalls") or []
     calls = []
     for raw in raw_calls:
