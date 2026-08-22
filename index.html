@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cartly — Voice-First Grocery List</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,67 +14,208 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
-  <div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useMemo, useRef, useEffect } = React;
+  <!-- Utility Bar -->
+  <div class="hidden sm:flex items-center justify-between bg-slate-950 px-6 py-1.5 text-xs text-slate-300">
+    <span class="flex items-center gap-1.5">📍 Deliver to Ashta, Madhya Pradesh 465001</span>
+    <span id="backend-status-bar" class="flex items-center gap-1.5 text-indigo-300">
+      ✨ Say it, and it's on your list — powered by Cartly
+    </span>
+  </div>
 
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-slate-900 px-4 py-3 shadow-sm sm:px-6">
+    <div class="mx-auto flex max-w-7xl items-center gap-3 sm:gap-6">
+      <button class="text-slate-300 sm:hidden">☰</button>
+      <div class="flex items-baseline gap-1 select-none cursor-pointer" onclick="location.reload()">
+        <span class="font-serif text-2xl font-bold tracking-tight text-white">Cartly</span>
+        <span class="hidden h-1.5 w-1.5 rounded-full bg-indigo-400 sm:inline-block"></span>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="relative flex-1">
+        <div id="search-container" class="flex items-center rounded-full border-2 bg-white pl-4 pr-1.5 py-1.5 transition-colors border-transparent">
+          <span class="text-slate-400">🔍</span>
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search Cartly, or tap the mic and just say it"
+            class="ml-2 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+          />
+          <button
+            id="mic-btn"
+            onclick="startListening()"
+            aria-label="Talk to Cartly"
+            class="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+          >
+            🎙️
+          </button>
+        </div>
+      </div>
+
+      <button class="hidden items-center gap-1.5 text-sm text-slate-200 hover:text-white sm:flex">
+        👤 Account
+      </button>
+      <button onclick="toggleCartDrawer(true)" class="relative flex items-center gap-1.5 text-slate-200 hover:text-white">
+        🛒 <span class="hidden text-sm sm:inline">List</span>
+        <span id="cart-badge" class="hidden absolute -right-2 -top-2 h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[11px] font-bold text-slate-900">
+          0
+        </span>
+      </button>
+    </div>
+
+    <!-- Category Strip -->
+    <div id="category-strip" class="mx-auto mt-3 flex max-w-7xl gap-2 overflow-x-auto pb-0.5">
+      <!-- Injected via JS -->
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+    <!-- Hero Banner -->
+    <section class="mb-8 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-2xl bg-slate-900 px-6 py-8 sm:grid-cols-2 sm:px-10 sm:py-10">
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">Voice-first grocery list</p>
+        <h1 class="font-serif text-3xl font-bold leading-tight text-white sm:text-4xl">
+          Just say what you need.
+        </h1>
+        <p class="mt-3 max-w-md text-sm text-slate-300">
+          Cartly listens, sorts, and remembers — so your list stays accurate whether you speak it, type it, or tap it.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-2">
+          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Add milk”</span>
+          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Find snacks under $5”</span>
+          <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Remove bread”</span>
+        </div>
+        <button
+          onclick="startListening()"
+          class="mt-6 flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30"
+        >
+          🎙️ Try talking to Cartly
+        </button>
+      </div>
+      <div class="relative mx-auto flex h-40 w-40 items-center justify-center sm:h-48 sm:w-48">
+        <span class="absolute h-full w-full animate-ping rounded-full bg-indigo-500/20"></span>
+        <span class="absolute h-3/4 w-3/4 animate-pulse rounded-full bg-indigo-500/30"></span>
+        <span onclick="startListening()" class="relative flex h-20 w-20 items-center justify-center rounded-full bg-indigo-600 shadow-lg shadow-indigo-900/40 cursor-pointer">
+          <span class="text-3xl">🎙️</span>
+        </span>
+      </div>
+    </section>
+
+    <!-- Suggested Section -->
+    <section class="mb-8">
+      <div class="mb-3 flex items-center gap-2">
+        <span>✨</span>
+        <h2 class="font-serif text-lg font-bold text-slate-900">Suggested for you</h2>
+      </div>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 ring-4 ring-indigo-50 font-bold">🔄</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-slate-800">Running low on Sourdough Loaf</p>
+            <p class="mt-0.5 text-xs text-slate-500">You usually re-add this every 6–7 days</p>
+            <button onclick="addToCart('p7', 1)" class="mt-2 text-xs font-semibold text-indigo-700 hover:text-indigo-900">Add to list →</button>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 ring-4 ring-indigo-50 font-bold">🌿</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-slate-800">Strawberries are in season</p>
+            <p class="mt-0.5 text-xs text-slate-500">Peak freshness through late August</p>
+            <button onclick="addToCart('p1', 1)" class="mt-2 text-xs font-semibold text-indigo-700 hover:text-indigo-900">Add to list →</button>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 ring-4 ring-indigo-50 font-bold">🔄</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-slate-800">Try Oat Milk instead of Whole Milk</p>
+            <p class="mt-0.5 text-xs text-slate-500">Dairy-free, similar texture</p>
+            <button onclick="addToCart('p5', 1)" class="mt-2 text-xs font-semibold text-indigo-700 hover:text-indigo-900">Add to list →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters Row -->
+    <section class="mb-4 flex flex-wrap items-center gap-2">
+      <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Price Filter</span>
+      <button onclick="setPriceFilter(null, this)" class="price-chip rounded-full border px-3 py-1 text-xs font-medium border-slate-900 bg-slate-900 text-white">Any</button>
+      <button onclick="setPriceFilter(5, this)" class="price-chip rounded-full border px-3 py-1 text-xs font-medium border-slate-200 bg-white text-slate-600 hover:border-slate-300">Under $5</button>
+      <button onclick="setPriceFilter(10, this)" class="price-chip rounded-full border px-3 py-1 text-xs font-medium border-slate-200 bg-white text-slate-600 hover:border-slate-300">Under $10</button>
+      <span id="product-count" class="ml-auto text-xs text-slate-400">20 items</span>
+    </section>
+
+    <!-- Product Grid -->
+    <section id="product-grid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <!-- Injected via JS -->
+    </section>
+  </main>
+
+  <footer class="mt-10 bg-slate-950 px-6 py-8 text-sm text-slate-400">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 sm:flex-row">
+      <span class="font-serif text-lg font-bold text-white">Cartly</span>
+      <p class="text-xs">Manages your shopping list by voice or text. Synced with FastAPI backend API.</p>
+    </div>
+  </footer>
+
+  <!-- Cart Drawer Overlay -->
+  <div id="cart-drawer-backdrop" class="hidden fixed inset-0 z-40 flex justify-end">
+    <div class="absolute inset-0 bg-slate-900/40" onclick="toggleCartDrawer(false)"></div>
+    <div class="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <h2 id="cart-drawer-title" class="font-serif text-lg font-bold">Your list (0)</h2>
+        <button onclick="toggleCartDrawer(false)" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <div id="cart-items-container" class="flex-1 overflow-y-auto px-5 py-4">
+        <!-- Injected via JS -->
+      </div>
+      <div class="border-t border-slate-100 px-5 py-4">
+        <div class="mb-3 flex items-center justify-between text-sm">
+          <span class="text-slate-500">Estimated total</span>
+          <span id="cart-total-price" class="font-serif text-lg font-bold">$0.00</span>
+        </div>
+        <button class="w-full rounded-full bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">
+          Mark list ready for the store
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Panel Modal -->
+  <div id="voice-modal" class="hidden fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-6 sm:items-center sm:pb-0">
+    <div class="w-full max-w-sm rounded-2xl border border-indigo-100 bg-white p-5 text-center shadow-2xl">
+      <div class="relative mx-auto mb-3 flex h-16 w-16 items-center justify-center">
+        <span id="voice-pulse" class="absolute h-full w-full animate-ping rounded-full bg-indigo-400/40"></span>
+        <span id="voice-icon-bg" class="relative flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white text-2xl">
+          🎙️
+        </span>
+      </div>
+      <p id="voice-status" class="text-xs font-semibold uppercase tracking-wide text-indigo-500">Listening… speak now</p>
+      <p id="voice-transcript" class="mt-2 text-sm text-slate-800 font-medium">Say something like "Add milk" or "Is salmon in stock?"</p>
+      <div id="voice-response" class="hidden mt-3 text-xs font-semibold text-emerald-700 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-el" class="hidden fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg flex items-center gap-2">
+    <span>🔊</span> <span id="toast-text"></span>
+  </div>
+
+  <!-- Pure JavaScript Logic -->
+  <script>
     const BACKEND_URL = "http://localhost:4444";
 
-    // Text-to-Speech Voice Output Engine
-    const speak = (text) => {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-      window.speechSynthesis.speak(utterance);
-    };
-
-    // Lucide Icon SVG Components
-    const IconBase = ({ d, className = "h-4 w-4", strokeWidth = 2, fill = "none" }) => (
-      <svg className={className} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-        {Array.isArray(d) ? d.map((pathD, idx) => <path key={idx} d={pathD} />) : <path d={d} />}
-      </svg>
-    );
-
-    const Search = (props) => <IconBase {...props} d={["M21 21l-4.35-4.35", "M19 11a8 8 0 11-16 0 8 8 0 0116 0z"]} />;
-    const Mic = (props) => <IconBase {...props} d={["M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z", "M19 10v2a7 7 0 01-14 0v-2", "M12 19v3"]} />;
-    const ShoppingCart = (props) => <IconBase {...props} d={["M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z", "M3 6h18", "M16 10a4 4 0 01-8 0"]} />;
-    const X = (props) => <IconBase {...props} d="M18 6L6 18M6 6l12 12" />;
-    const Plus = (props) => <IconBase {...props} d="M12 5v14M5 12h14" />;
-    const Minus = (props) => <IconBase {...props} d="M5 12h14" />;
-    const Star = (props) => <IconBase {...props} d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={props.fill || "none"} />;
-    const Sparkles = (props) => <IconBase {...props} d={["M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"]} />;
-    const RefreshCw = (props) => <IconBase {...props} d={["M23 4v6h-6", "M1 20v-6h6", "M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"]} />;
-    const Leaf = (props) => <IconBase {...props} d={["M11 20A7 7 0 014 13V5a1 1 0 011-1h8a7 7 0 017 7v1a8 8 0 01-8 8z", "M11 20v-9"]} />;
-    const ArrowLeftRight = (props) => <IconBase {...props} d={["M8 3L4 7l4 4", "M4 7h16", "M16 21l4-4-4-4", "M20 17H4"]} />;
-    const MapPin = (props) => <IconBase {...props} d={["M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z", "M12 10a3 3 0 100-6 3 3 0 000 6z"]} />;
-    const User = (props) => <IconBase {...props} d={["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2", "M12 11a4 4 0 100-8 4 4 0 000 8z"]} />;
-    const Check = (props) => <IconBase {...props} d="M20 6L9 17l-5-5" />;
-    const Menu = (props) => <IconBase {...props} d="M3 12h18M3 6h18M3 18h18" />;
-    const Apple = (props) => <IconBase {...props} d={["M12 2a2 2 0 002 2c1.5 0 3-1 3-1", "M12 22c-4 0-7-3-7-7 0-3 2-6 5-7 2 0 3 1 4 1s2-1 4-1c3 1 5 4 5 7 0 4-3 7-7 7z"]} />;
-    const Milk = (props) => <IconBase {...props} d={["M8 2h8v4H8z", "M6 6h12l1 4v10a2 2 0 01-2 2H7a2 2 0 01-2-2V10l1-4z"]} />;
-    const Croissant = (props) => <IconBase {...props} d={["M4.5 16.5c-1.5 1.5-2.5 3-2.5 4.5 0 1.5 1.5 1.5 3 0l3.5-3.5", "M19.5 16.5c1.5 1.5 2.5 3 2.5 4.5 0 1.5-1.5 1.5-3 0l-3.5-3.5", "M8 12c-2.5-3-2.5-7 0-9.5s7-2.5 9.5 0 2.5 7 0 9.5"]} />;
-    const CupSoda = (props) => <IconBase {...props} d={["M6 8h12l-1 12a2 2 0 01-2 2H9a2 2 0 01-2-2L6 8z", "M9 3h6v5H9z"]} />;
-    const Package = (props) => <IconBase {...props} d={["M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z", "M3.27 6.96L12 12.01l8.73-5.05", "M12 22.08V12"]} />;
-    const Cookie = (props) => <IconBase {...props} d={["M12 2a10 10 0 1010 10 3.5 3.5 0 01-5-5 3.5 3.5 0 01-5-5z"]} />;
-    const SprayCan = (props) => <IconBase {...props} d={["M6 9h12v11a2 2 0 01-2 2H8a2 2 0 01-2-2V9z", "M9 5h6v4H9z", "M12 2v3"]} />;
-    const Beef = (props) => <IconBase {...props} d={["M12.5 4.5C10 2 6 3 4.5 4.5S3 10 5.5 12.5s7 2.5 9.5 0 2.5-7 0-9.5z", "M13.5 10.5l6 6"]} />;
-
     const CATEGORIES = [
-      { id: "produce", label: "Produce", icon: Apple, tint: "bg-emerald-50 text-emerald-700", ring: "ring-emerald-100" },
-      { id: "dairy", label: "Dairy", icon: Milk, tint: "bg-sky-50 text-sky-700", ring: "ring-sky-100" },
-      { id: "bakery", label: "Bakery", icon: Croissant, tint: "bg-amber-50 text-amber-700", ring: "ring-amber-100" },
-      { id: "beverages", label: "Beverages", icon: CupSoda, tint: "bg-cyan-50 text-cyan-700", ring: "ring-cyan-100" },
-      { id: "pantry", label: "Pantry", icon: Package, tint: "bg-orange-50 text-orange-700", ring: "ring-orange-100" },
-      { id: "snacks", label: "Snacks", icon: Cookie, tint: "bg-rose-50 text-rose-700", ring: "ring-rose-100" },
-      { id: "household", label: "Household", icon: SprayCan, tint: "bg-violet-50 text-violet-700", ring: "ring-violet-100" },
-      { id: "meat", label: "Meat & Protein", icon: Beef, tint: "bg-red-50 text-red-700", ring: "ring-red-100" },
+      { id: "produce", label: "Produce", emoji: "🥦", tint: "bg-emerald-50 text-emerald-700", ring: "ring-emerald-100" },
+      { id: "dairy", label: "Dairy", emoji: "🥛", tint: "bg-sky-50 text-sky-700", ring: "ring-sky-100" },
+      { id: "bakery", label: "Bakery", emoji: "🍞", tint: "bg-amber-50 text-amber-700", ring: "ring-amber-100" },
+      { id: "beverages", label: "Beverages", emoji: "🧃", tint: "bg-cyan-50 text-cyan-700", ring: "ring-cyan-100" },
+      { id: "pantry", label: "Pantry", emoji: "🫙", tint: "bg-orange-50 text-orange-700", ring: "ring-orange-100" },
+      { id: "snacks", label: "Snacks", emoji: "🍿", tint: "bg-rose-50 text-rose-700", ring: "ring-rose-100" },
+      { id: "household", label: "Household", emoji: "🏠", tint: "bg-violet-50 text-violet-700", ring: "ring-violet-100" },
+      { id: "meat", label: "Meat & Protein", emoji: "🥩", tint: "bg-red-50 text-red-700", ring: "ring-red-100" },
     ];
-
-    const catMap = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
     const PRODUCTS = [
       { id: "p1", name: "Organic Strawberries", category: "produce", price: 4.49, unit: "1 lb box", rating: 4.7, reviews: 812 },
@@ -102,459 +240,297 @@
       { id: "p20", name: "Extra-Firm Tofu", category: "meat", price: 2.79, unit: "14 oz", rating: 4.4, reviews: 122 },
     ];
 
-    const byId = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
+    const catMap = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+    const byId = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 
-    const SUGGESTIONS = [
-      { kind: "replenish", title: "Running low on Sourdough Loaf", note: "You usually re-add this every 6–7 days", productId: "p7", icon: RefreshCw },
-      { kind: "seasonal", title: "Strawberries are in season", note: "Peak freshness through late August", productId: "p1", icon: Leaf },
-      { kind: "substitute", title: "Try Oat Milk instead of Whole Milk", note: "Dairy-free, similar texture", productId: "p5", icon: ArrowLeftRight },
-    ];
+    let cart = {}; // prodId -> qty
+    let activeCategory = "all";
+    let maxPrice = null;
+    let searchQuery = "";
+    let toastTimer = null;
 
-    const VOICE_DEMO_LINE = "“Add two bottles of oat milk and some strawberries”";
-
-    function CartlyStorefront() {
-      const [query, setQuery] = useState("");
-      const [activeCategory, setActiveCategory] = useState("all");
-      const [maxPrice, setMaxPrice] = useState(null);
-      const [cart, setCart] = useState({}); // productId -> qty
-      const [cartOpen, setCartOpen] = useState(false);
-      const [voiceOpen, setVoiceOpen] = useState(false);
-      const [voiceState, setVoiceState] = useState("idle");
-      const [toast, setToast] = useState(null);
-      const [backendConnected, setBackendConnected] = useState(false);
-      const toastTimer = useRef(null);
-
-      const showToast = (msg) => {
-        setToast(msg);
-        clearTimeout(toastTimer.current);
-        toastTimer.current = setTimeout(() => setToast(null), 2400);
-      };
-
-      const fetchBackendItems = async () => {
-        try {
-          const res = await fetch(`${BACKEND_URL}/list_items`, { method: "POST" });
-          if (res.ok) {
-            const data = await res.json();
-            setBackendConnected(true);
-            const newCart = {};
-            (data.items || []).forEach(item => {
-              const matched = PRODUCTS.find(p => p.name.toLowerCase() === item.itemName.toLowerCase());
-              if (matched) {
-                newCart[matched.id] = item.quantity;
-              }
-            });
-            setCart(newCart);
-          }
-        } catch (e) {
-          setBackendConnected(false);
-        }
-      };
-
-      useEffect(() => {
-        fetchBackendItems();
-      }, []);
-
-      const addToCart = async (id, qty = 1, label) => {
-        const prod = byId[id];
-        const itemName = label || prod?.name || id;
-        const cat = prod ? catMap[prod.category]?.label : "Other";
-        const price = prod ? prod.price : null;
-        const unit = prod ? prod.unit : "";
-
-        setCart((c) => ({ ...c, [id]: (c[id] || 0) + qty }));
-        showToast(`Added ${label || byId[id]?.name} to your list`);
-        speak(`Added ${label || byId[id]?.name} to your list`);
-
-        try {
-          await fetch(`${BACKEND_URL}/add_item`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              itemName: itemName,
-              quantity: qty,
-              unit: unit,
-              category: cat,
-              maxPrice: price
-            })
-          });
-          fetchBackendItems();
-        } catch (e) {}
-      };
-
-      const setQty = async (id, qty) => {
-        const prod = byId[id];
-        const oldQty = cart[id] || 0;
-        
-        if (qty <= 0) {
-          setCart((c) => {
-            const next = { ...c };
-            delete next[id];
-            return next;
-          });
-          if (prod) {
-            showToast(`Removed ${prod.name} from your list`);
-            speak(`Removed ${prod.name} from your list`);
-            try {
-              await fetch(`${BACKEND_URL}/cancel_item`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ itemName: prod.name })
-              });
-            } catch (e) {}
-          }
-        } else {
-          setCart((c) => ({ ...c, [id]: qty }));
-          if (prod) {
-            const diff = qty - oldQty;
-            try {
-              await fetch(`${BACKEND_URL}/add_item`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  itemName: prod.name,
-                  quantity: diff > 0 ? diff : 1,
-                  unit: prod.unit,
-                  category: catMap[prod.category]?.label || "Other"
-                })
-              });
-            } catch (e) {}
-          }
-        }
-      };
-
-      const removeFromCart = (id) => setQty(id, 0);
-
-      const swapItem = async (fromId, toId) => {
-        await removeFromCart(fromId);
-        await addToCart(toId, 1);
-        showToast(`Swapped for ${byId[toId]?.name}`);
-      };
-
-      const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
-      const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => sum + (byId[id]?.price || 0) * qty, 0);
-      const hasMilk = !!cart["p4"];
-
-      const filtered = useMemo(() => {
-        return PRODUCTS.filter((p) => {
-          const matchesQuery = query.trim() === "" || p.name.toLowerCase().includes(query.toLowerCase());
-          const matchesCategory = activeCategory === "all" || p.category === activeCategory;
-          const matchesPrice = maxPrice == null || p.price <= maxPrice;
-          return matchesQuery && matchesCategory && matchesPrice;
-        });
-      }, [query, activeCategory, maxPrice]);
-
-      const runVoiceDemo = () => {
-        setVoiceOpen(true);
-        setVoiceState("listening");
-        setTimeout(() => setVoiceState("heard"), 1700);
-        setTimeout(() => {
-          addToCart("p5", 2, "Oat Milk");
-          addToCart("p1", 1, "Organic Strawberries");
-          setVoiceState("done");
-        }, 2600);
-        setTimeout(() => setVoiceOpen(false), 4200);
-      };
-
-      useEffect(() => () => clearTimeout(toastTimer.current), []);
-
-      return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-          <div className="hidden sm:flex items-center justify-between bg-slate-950 px-6 py-1.5 text-xs text-slate-300">
-            <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Deliver to Ashta, Madhya Pradesh 465001</span>
-            <span className="flex items-center gap-1.5 text-indigo-300"><Sparkles className="h-3.5 w-3.5" /> Say it, and it's on your list — powered by Cartly</span>
-          </div>
-
-          <header className="sticky top-0 z-30 bg-slate-900 px-4 py-3 shadow-sm sm:px-6">
-            <div className="mx-auto flex max-w-7xl items-center gap-3 sm:gap-6">
-              <button className="text-slate-300 sm:hidden"><Menu className="h-6 w-6" /></button>
-              <div className="flex items-baseline gap-1 select-none">
-                <span className="font-serif text-2xl font-bold tracking-tight text-white">Cartly</span>
-                <span className="hidden h-1.5 w-1.5 rounded-full bg-indigo-400 sm:inline-block" />
-              </div>
-
-              <div className="relative flex-1">
-                <div className={`flex items-center rounded-full border-2 bg-white pl-4 pr-1.5 py-1.5 transition-colors ${
-                  voiceOpen ? "border-indigo-400 ring-4 ring-indigo-100" : "border-transparent"
-                }`}>
-                  <Search className="h-4 w-4 shrink-0 text-slate-400" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search Cartly, or tap the mic and just say it"
-                    className="ml-2 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
-                  />
-                  <button
-                    onClick={runVoiceDemo}
-                    aria-label="Talk to Cartly"
-                    className={`ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors ${
-                      voiceOpen ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                    }`}
-                  >
-                    <Mic className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              <button className="hidden items-center gap-1.5 text-sm text-slate-200 hover:text-white sm:flex">
-                <User className="h-5 w-5" /> Account
-              </button>
-              <button onClick={() => setCartOpen(true)} className="relative flex items-center gap-1.5 text-slate-200 hover:text-white">
-                <ShoppingCart className="h-6 w-6" />
-                <span className="hidden text-sm sm:inline">List</span>
-                {cartCount > 0 && (
-                  <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[11px] font-bold text-slate-900">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            <div className="mx-auto mt-3 flex max-w-7xl gap-2 overflow-x-auto pb-0.5">
-              <button
-                onClick={() => setActiveCategory("all")}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                  activeCategory === "all" ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                }`}
-              >
-                All items
-              </button>
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setActiveCategory(c.id)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                    activeCategory === c.id ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                  }`}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </header>
-
-          <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-            <section className="mb-8 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-2xl bg-slate-900 px-6 py-8 sm:grid-cols-2 sm:px-10 sm:py-10">
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">Voice-first grocery list</p>
-                <h1 className="font-serif text-3xl font-bold leading-tight text-white sm:text-4xl">
-                  Just say what you need.
-                </h1>
-                <p className="mt-3 max-w-md text-sm text-slate-300">
-                  Cartly listens, sorts, and remembers — so your list stays accurate whether you speak it, type it, or tap it.
-                </p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {["“Add milk”", "“Find snacks under $5”", "“Remove bread”"].map((c) => (
-                    <span key={c} className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">{c}</span>
-                  ))}
-                </div>
-                <button
-                  onClick={runVoiceDemo}
-                  className="mt-6 flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
-                >
-                  <Mic className="h-4 w-4" /> Try talking to Cartly
-                </button>
-              </div>
-              <div className="relative mx-auto flex h-40 w-40 items-center justify-center sm:h-48 sm:w-48">
-                <span className="absolute h-full w-full animate-ping rounded-full bg-indigo-500/20" />
-                <span className="absolute h-3/4 w-3/4 animate-pulse rounded-full bg-indigo-500/30" />
-                <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-indigo-600 shadow-lg shadow-indigo-900/40 cursor-pointer" onClick={runVoiceDemo}>
-                  <Mic className="h-9 w-9 text-white" />
-                </span>
-              </div>
-            </section>
-
-            <section className="mb-8">
-              <div className="mb-3 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-indigo-600" />
-                <h2 className="font-serif text-lg font-bold text-slate-900">Suggested for you</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {SUGGESTIONS.map((s) => {
-                  const Icon = s.icon;
-                  const product = byId[s.productId];
-                  return (
-                    <div key={s.title} className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 ring-4 ring-indigo-50">
-                        <Icon className="h-4.5 w-4.5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-800">{s.title}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{s.note}</p>
-                        <button
-                          onClick={() => addToCart(product.id, 1)}
-                          className="mt-2 text-xs font-semibold text-indigo-700 hover:text-indigo-900"
-                        >
-                          Add to list →
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Price</span>
-              {[
-                { label: "Any", val: null },
-                { label: "Under $5", val: 5 },
-                { label: "Under $10", val: 10 },
-              ].map((f) => (
-                <button
-                  key={f.label}
-                  onClick={() => setMaxPrice(f.val)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                    maxPrice === f.val ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-              <span className="ml-auto text-xs text-slate-400">{filtered.length} items</span>
-            </section>
-
-            <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {filtered.map((p) => {
-                const cat = catMap[p.category];
-                const Icon = cat.icon;
-                const qty = cart[p.id] || 0;
-                return (
-                  <div key={p.id} className="group flex flex-col rounded-xl border border-slate-200 bg-white p-3 transition-shadow hover:shadow-md">
-                    <div className={`mb-3 flex h-24 items-center justify-center rounded-lg ${cat.tint} ring-1 ${cat.ring}`}>
-                      <Icon className="h-9 w-9" strokeWidth={1.5} />
-                    </div>
-                    <span className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{cat.label}</span>
-                    <h3 className="text-sm font-semibold leading-snug text-slate-800">{p.name}</h3>
-                    <p className="mt-0.5 text-xs text-slate-400">{p.unit}</p>
-                    <div className="mt-1 flex items-center gap-1 text-xs text-amber-500">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      <span className="text-slate-500">{p.rating} ({p.reviews})</span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="font-serif text-base font-bold text-slate-900">{currency(p.price)}</span>
-                      {qty === 0 ? (
-                        <button
-                          onClick={() => addToCart(p.id)}
-                          className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
-                        >
-                          Add
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-1 rounded-full bg-slate-100 px-1">
-                          <button onClick={() => setQty(p.id, qty - 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200"><Minus className="h-3.5 w-3.5" /></button>
-                          <span className="w-4 text-center text-xs font-semibold">{qty}</span>
-                          <button onClick={() => setQty(p.id, qty + 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200"><Plus className="h-3.5 w-3.5" /></button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              {filtered.length === 0 && (
-                <div className="col-span-full rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">
-                  Nothing matches that search. Try a different item or clear the price filter.
-                </div>
-              )}
-            </section>
-          </main>
-
-          <footer className="mt-10 bg-slate-950 px-6 py-8 text-sm text-slate-400">
-            <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 sm:flex-row">
-              <span className="font-serif text-lg font-bold text-white">Cartly</span>
-              <p className="text-xs">Manages your shopping list by voice or text. Doesn't place orders or process payments.</p>
-            </div>
-          </footer>
-
-          {cartOpen && (
-            <div className="fixed inset-0 z-40 flex justify-end">
-              <div className="absolute inset-0 bg-slate-900/40" onClick={() => setCartOpen(false)} />
-              <div className="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
-                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                  <h2 className="font-serif text-lg font-bold">Your list</h2>
-                  <button onClick={() => setCartOpen(false)} className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
-                </div>
-                <div className="flex-1 overflow-y-auto px-5 py-4">
-                  {cartCount === 0 && (
-                    <p className="mt-8 text-center text-sm text-slate-400">Your list is empty. Try the mic in the search bar.</p>
-                  )}
-                  {Object.entries(cart).map(([id, qty]) => {
-                    const p = byId[id];
-                    const cat = catMap[p.category];
-                    return (
-                      <div key={id} className="mb-3 flex items-center gap-3 rounded-lg border border-slate-100 p-2.5">
-                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.tint}`}>
-                          <cat.icon className="h-5 w-5" strokeWidth={1.5} />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-slate-800">{p.name}</p>
-                          <p className="text-xs text-slate-400">{currency(p.price)} · {p.unit}</p>
-                        </div>
-                        <div className="flex items-center gap-1 rounded-full bg-slate-100 px-1">
-                          <button onClick={() => setQty(id, qty - 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200"><Minus className="h-3.5 w-3.5" /></button>
-                          <span className="w-4 text-center text-xs font-semibold">{qty}</span>
-                          <button onClick={() => setQty(id, qty + 1)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-200"><Plus className="h-3.5 w-3.5" /></button>
-                        </div>
-                        <button onClick={() => removeFromCart(id)} className="text-slate-300 hover:text-red-500"><X className="h-4 w-4" /></button>
-                      </div>
-                    );
-                  })}
-
-                  {hasMilk && (
-                    <div className="mt-2 flex items-start gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3">
-                      <ArrowLeftRight className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
-                      <div className="flex-1">
-                        <p className="text-xs font-semibold text-slate-700">Prefer dairy-free? Swap Whole Milk for Oat Milk.</p>
-                        <button onClick={() => swapItem("p4", "p5")} className="mt-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900">Swap it →</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="border-t border-slate-100 px-5 py-4">
-                  <div className="mb-3 flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Estimated total</span>
-                    <span className="font-serif text-lg font-bold">{currency(cartTotal)}</span>
-                  </div>
-                  <button className="w-full rounded-full bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">
-                    Mark list ready for the store
-                  </button>
-                  <p className="mt-2 text-center text-[11px] text-slate-400">Cartly manages your list — it doesn't place orders or take payment.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {voiceOpen && (
-            <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-6 sm:items-center sm:pb-0">
-              <div className="w-full max-w-sm rounded-2xl border border-indigo-100 bg-white p-5 text-center shadow-2xl">
-                <div className="relative mx-auto mb-3 flex h-16 w-16 items-center justify-center">
-                  {voiceState === "listening" && <span className="absolute h-full w-full animate-ping rounded-full bg-indigo-400/40" />}
-                  <span className={`relative flex h-14 w-14 items-center justify-center rounded-full ${voiceState === "done" ? "bg-emerald-500" : "bg-indigo-600"}`}>
-                    {voiceState === "done" ? <Check className="h-6 w-6 text-white" /> : <Mic className="h-6 w-6 text-white" />}
-                  </span>
-                </div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
-                  {voiceState === "listening" ? "Listening…" : voiceState === "heard" ? "Got it" : "Added to your list"}
-                </p>
-                <p className="mt-2 text-sm text-slate-700">
-                  {voiceState === "listening" ? "Say something like " + VOICE_DEMO_LINE : VOICE_DEMO_LINE}
-                </p>
-                {voiceState === "done" && (
-                  <p className="mt-2 text-xs text-slate-400">2 × Oat Milk, 1 × Organic Strawberries</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {toast && (
-            <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg">
-              {toast}
-            </div>
-          )}
-        </div>
-      );
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<CartlyStorefront />);
+    function showToast(msg, speakOut = true) {
+      const toastEl = document.getElementById("toast-el");
+      const toastText = document.getElementById("toast-text");
+      toastText.innerText = msg;
+      toastEl.classList.remove("hidden");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.add("hidden"), 3000);
+      if (speakOut) speak(msg);
+    }
+
+    async function fetchBackendItems() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/list_items`, { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById("backend-status-bar").innerHTML = "✨ Say it, and it's on your list — powered by Cartly 🟢 (Backend API Connected)";
+          cart = {};
+          (data.items || []).forEach(item => {
+            const matched = PRODUCTS.find(p => p.name.toLowerCase() === item.itemName.toLowerCase());
+            if (matched) cart[matched.id] = item.quantity;
+          });
+          renderProducts();
+          renderCartDrawer();
+        }
+      } catch (e) {
+        document.getElementById("backend-status-bar").innerHTML = "✨ Say it, and it's on your list — powered by Cartly 🟡 (Local Mode)";
+      }
+    }
+
+    async function addToCart(id, qty = 1, label) {
+      const prod = byId[id];
+      const itemName = label || prod?.name || id;
+      cart[id] = (cart[id] || 0) + qty;
+      renderProducts();
+      renderCartDrawer();
+      showToast(`Added ${itemName} to your list`);
+
+      try {
+        await fetch(`${BACKEND_URL}/add_item`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemName: itemName,
+            quantity: qty,
+            unit: prod ? prod.unit : "",
+            category: prod ? catMap[prod.category]?.label : "Other",
+            maxPrice: prod ? prod.price : null
+          })
+        });
+      } catch(e) {}
+    }
+
+    async function setQty(id, qty) {
+      const prod = byId[id];
+      if (qty <= 0) {
+        delete cart[id];
+        if (prod) {
+          showToast(`Removed ${prod.name} from your list`);
+          try {
+            await fetch(`${BACKEND_URL}/cancel_item`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ itemName: prod.name })
+            });
+          } catch(e) {}
+        }
+      } else {
+        cart[id] = qty;
+        if (prod) {
+          showToast(`Updated quantity for ${prod.name} to ${qty}`);
+          try {
+            await fetch(`${BACKEND_URL}/add_item`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ itemName: prod.name, quantity: 1, category: catMap[prod.category]?.label || "Other" })
+            });
+          } catch(e) {}
+        }
+      }
+      renderProducts();
+      renderCartDrawer();
+    }
+
+    function toggleCartDrawer(open) {
+      const el = document.getElementById("cart-drawer-backdrop");
+      if (open) el.classList.remove("hidden");
+      else el.classList.add("hidden");
+    }
+
+    function setPriceFilter(val, btn) {
+      maxPrice = val;
+      document.querySelectorAll(".price-chip").forEach(b => {
+        b.className = "price-chip rounded-full border px-3 py-1 text-xs font-medium border-slate-200 bg-white text-slate-600 hover:border-slate-300";
+      });
+      btn.className = "price-chip rounded-full border px-3 py-1 text-xs font-medium border-slate-900 bg-slate-900 text-white";
+      renderProducts();
+    }
+
+    function renderCategoryStrip() {
+      const strip = document.getElementById("category-strip");
+      let html = `<button onclick="selectCategory('all', this)" class="cat-btn shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium bg-white text-slate-900">All items</button>`;
+      CATEGORIES.forEach(c => {
+        html += `<button onclick="selectCategory('${c.id}', this)" class="cat-btn shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700">${c.emoji} ${c.label}</button>`;
+      });
+      strip.innerHTML = html;
+    }
+
+    function selectCategory(catId, btn) {
+      activeCategory = catId;
+      document.querySelectorAll(".cat-btn").forEach(b => {
+        b.className = "cat-btn shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700";
+      });
+      btn.className = "cat-btn shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium bg-white text-slate-900";
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById("product-grid");
+      const filtered = PRODUCTS.filter(p => {
+        const matchesQuery = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCat = activeCategory === "all" || p.category === activeCategory;
+        const matchesPrice = maxPrice == null || p.price <= maxPrice;
+        return matchesQuery && matchesCat && matchesPrice;
+      });
+
+      document.getElementById("product-count").innerText = `${filtered.length} items`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">Nothing matches that search. Try a different item or clear the price filter.</div>`;
+        return;
+      }
+
+      let html = "";
+      filtered.forEach(p => {
+        const cat = catMap[p.category];
+        const qty = cart[p.id] || 0;
+        html += `
+          <div class="group flex flex-col rounded-xl border border-slate-200 bg-white p-3 transition-shadow hover:shadow-md">
+            <div class="mb-3 flex h-24 items-center justify-center rounded-lg ${cat.tint} ring-1 ${cat.ring} text-3xl">
+              ${cat.emoji}
+            </div>
+            <span class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">${cat.label}</span>
+            <h3 class="text-sm font-semibold leading-snug text-slate-800">${p.name}</h3>
+            <p class="mt-0.5 text-xs text-slate-400">${p.unit}</p>
+            <div class="mt-1 flex items-center gap-1 text-xs text-amber-500">
+              <span>⭐</span>
+              <span class="text-slate-500">${p.rating} (${p.reviews})</span>
+            </div>
+            <div class="mt-2 flex items-center justify-between">
+              <span class="font-serif text-base font-bold text-slate-900">$${p.price.toFixed(2)}</span>
+              ${qty === 0 ? `
+                <button onclick="addToCart('${p.id}')" class="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">Add</button>
+              ` : `
+                <div class="flex items-center gap-1 rounded-full bg-slate-100 px-1">
+                  <button onclick="setQty('${p.id}', ${qty - 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
+                  <span class="w-4 text-center text-xs font-semibold">${qty}</span>
+                  <button onclick="setQty('${p.id}', ${qty + 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">+</button>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+    }
+
+    function renderCartDrawer() {
+      const totalCount = Object.values(cart).reduce((a, b) => a + b, 0);
+      const badge = document.getElementById("cart-badge");
+      if (totalCount > 0) {
+        badge.innerText = totalCount;
+        badge.classList.remove("hidden");
+        badge.classList.add("flex");
+      } else {
+        badge.classList.add("hidden");
+      }
+
+      document.getElementById("cart-drawer-title").innerText = `Your list (${totalCount})`;
+
+      const container = document.getElementById("cart-items-container");
+      if (totalCount === 0) {
+        container.innerHTML = `<p class="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap the mic in the search bar!</p>`;
+        document.getElementById("cart-total-price").innerText = "$0.00";
+        return;
+      }
+
+      let totalPrice = 0;
+      let html = "";
+      Object.entries(cart).forEach(([id, qty]) => {
+        const p = byId[id];
+        if (!p) return;
+        const cat = catMap[p.category];
+        totalPrice += p.price * qty;
+        html += `
+          <div class="mb-3 flex items-center gap-3 rounded-lg border border-slate-100 p-2.5">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.tint} text-xl">${cat.emoji}</span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-slate-800">${p.name}</p>
+              <p class="text-xs text-slate-400">$${p.price.toFixed(2)} · ${p.unit}</p>
+            </div>
+            <div class="flex items-center gap-1 rounded-full bg-slate-100 px-1">
+              <button onclick="setQty('${id}', ${qty - 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
+              <span class="w-4 text-center text-xs font-semibold">${qty}</span>
+              <button onclick="setQty('${id}', ${qty + 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">+</button>
+            </div>
+            <button onclick="setQty('${id}', 0)" class="text-slate-300 hover:text-red-500 font-bold ml-1">✕</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      document.getElementById("cart-total-price").innerText = `$${totalPrice.toFixed(2)}`;
+    }
+
+    function startListening() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const modal = document.getElementById("voice-modal");
+      const statusEl = document.getElementById("voice-status");
+      const transcriptEl = document.getElementById("voice-transcript");
+      const respEl = document.getElementById("voice-response");
+
+      modal.classList.remove("hidden");
+      statusEl.innerText = "Listening… speak now";
+      transcriptEl.innerText = "Listening... speak now";
+      respEl.classList.add("hidden");
+
+      if (!SpeechRecognition) {
+        setTimeout(() => {
+          transcriptEl.innerText = "“Add two bottles of oat milk”";
+          statusEl.innerText = "Demo Voice Mode";
+          addToCart("p5", 2, "Oat Milk");
+          respEl.innerText = '🗣️ Cartly says: "Added 2 Oat Milk to your list!"';
+          respEl.classList.remove("hidden");
+          setTimeout(() => modal.classList.add("hidden"), 3000);
+        }, 1500);
+        return;
+      }
+
+      try {
+        const rec = new SpeechRecognition();
+        rec.lang = 'en-US';
+        rec.onresult = (e) => {
+          const text = e.results[0][0].transcript;
+          transcriptEl.innerText = `“${text}”`;
+          statusEl.innerText = "Processing…";
+          
+          const lower = text.toLowerCase();
+          const matched = PRODUCTS.find(p => lower.includes(p.name.toLowerCase()));
+          if (matched) {
+            addToCart(matched.id, 1);
+            respEl.innerText = `🗣️ Cartly says: "Added ${matched.name} to your list!"`;
+          } else {
+            showToast(`Received: ${text}`);
+            respEl.innerText = `🗣️ Cartly says: "Processed: ${text}"`;
+          }
+          respEl.classList.remove("hidden");
+          setTimeout(() => modal.classList.add("hidden"), 3000);
+        };
+        rec.onerror = () => modal.classList.add("hidden");
+        rec.start();
+      } catch(e) {
+        modal.classList.add("hidden");
+      }
+    }
+
+    document.getElementById("search-input").addEventListener("input", (e) => {
+      searchQuery = e.target.value;
+      renderProducts();
+    });
+
+    renderCategoryStrip();
+    renderProducts();
+    renderCartDrawer();
+    fetchBackendItems();
   </script>
 </body>
 </html>
