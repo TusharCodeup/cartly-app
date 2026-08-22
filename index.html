@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cartly — Voice-First Grocery List</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- VAPI Web SDK for Real-time Voice Call with Assistant a6ef1750-410a-4cd9-a8e3-063bae010025 -->
+  <!-- VAPI Web SDK for Real-time Voice Call -->
   <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/vapi.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,8 +20,8 @@
   <!-- Utility Bar -->
   <div class="hidden sm:flex items-center justify-between bg-slate-950 px-6 py-1.5 text-xs text-slate-300">
     <span class="flex items-center gap-1.5">📍 Deliver to Ashta, Madhya Pradesh 465001</span>
-    <span id="backend-status-bar" class="flex items-center gap-1.5 text-indigo-300">
-      ✨ Say it, and it's on your list — powered by Cartly & VAPI
+    <span class="flex items-center gap-1.5 text-indigo-300">
+      ✨ Say it, and it's on your list — powered by Cartly
     </span>
   </div>
 
@@ -41,13 +41,13 @@
           <input
             id="search-input"
             type="text"
-            placeholder="Search Cartly, or tap the mic to speak to VAPI AI Assistant"
+            placeholder="Search Cartly, or tap the mic to speak to your assistant"
             class="ml-2 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
           />
           <button
             id="mic-btn"
             onclick="toggleVapiCall()"
-            aria-label="Talk to Cartly VAPI AI"
+            aria-label="Talk to Cartly Voice AI"
             class="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
           >
             🎙️
@@ -55,13 +55,12 @@
         </div>
       </div>
 
-      <!-- Live DB Inspector Button -->
-      <button onclick="toggleDbModal(true)" class="hidden items-center gap-1.5 text-xs text-indigo-300 bg-slate-800 px-3 py-1.5 rounded-full hover:bg-slate-700 sm:flex">
-        🟢 Live DB Status
+      <button class="hidden items-center gap-1.5 text-sm text-slate-200 hover:text-white sm:flex">
+        👤 Account
       </button>
 
       <button onclick="toggleCartDrawer(true)" class="relative flex items-center gap-1.5 text-slate-200 hover:text-white">
-        🛒 <span class="hidden text-sm sm:inline">List</span>
+        🛒 <span class="hidden text-sm sm:inline">My List</span>
         <span id="cart-badge" class="hidden absolute -right-2 -top-2 h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[11px] font-bold text-slate-900">
           0
         </span>
@@ -79,12 +78,12 @@
     <!-- Hero Banner -->
     <section class="mb-8 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-2xl bg-slate-900 px-6 py-8 sm:grid-cols-2 sm:px-10 sm:py-10">
       <div>
-        <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">VAPI Voice AI Assistant Connected</p>
+        <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">Voice-First Grocery Assistant</p>
         <h1 class="font-serif text-3xl font-bold leading-tight text-white sm:text-4xl">
           Just say what you need.
         </h1>
         <p class="mt-3 max-w-md text-sm text-slate-300">
-          Cartly connects directly to your VAPI AI Agent (<code class="text-indigo-300 bg-white/10 px-1 rounded">a6ef1750-410a-4cd9-a8e3-063bae010025</code>) for real-time voice calls.
+          Cartly listens, sorts, and manages your personal shopping list seamlessly by voice or text.
         </p>
         <div class="mt-5 flex flex-wrap gap-2">
           <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">“Add milk”</span>
@@ -96,7 +95,7 @@
           onclick="toggleVapiCall()"
           class="mt-6 flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/30"
         >
-          🎙️ Start VAPI Voice Call
+          🎙️ Start Voice Call
         </button>
       </div>
       <div class="relative mx-auto flex h-40 w-40 items-center justify-center sm:h-48 sm:w-48">
@@ -160,16 +159,16 @@
   <footer class="mt-10 bg-slate-950 px-6 py-8 text-sm text-slate-400">
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 sm:flex-row">
       <span class="font-serif text-lg font-bold text-white">Cartly</span>
-      <p class="text-xs">Backend Cloud API: <a href="https://cartly-backend-02g1.onrender.com/items" target="_blank" class="text-indigo-300 underline">https://cartly-backend-02g1.onrender.com</a></p>
+      <p class="text-xs">Cartly manages your shopping list by voice or text.</p>
     </div>
   </footer>
 
-  <!-- Cart Drawer Overlay -->
+  <!-- Private Shopping List Drawer -->
   <div id="cart-drawer-backdrop" class="hidden fixed inset-0 z-40 flex justify-end">
     <div class="absolute inset-0 bg-slate-900/40" onclick="toggleCartDrawer(false)"></div>
     <div class="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
       <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-        <h2 id="cart-drawer-title" class="font-serif text-lg font-bold">Your list (0)</h2>
+        <h2 id="cart-drawer-title" class="font-serif text-lg font-bold">Your List (0)</h2>
         <button onclick="toggleCartDrawer(false)" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
       </div>
       <div id="cart-items-container" class="flex-1 overflow-y-auto px-5 py-4">
@@ -187,24 +186,6 @@
     </div>
   </div>
 
-  <!-- Live Database Status Modal -->
-  <div id="db-modal-backdrop" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-    <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 class="font-serif text-lg font-bold text-slate-900">🟢 Live Render Database Connection</h3>
-        <button onclick="toggleDbModal(false)" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
-      </div>
-      <div class="mt-4 space-y-3 text-xs text-slate-600">
-        <p><strong>Cloud API URL:</strong> <a href="https://cartly-backend-02g1.onrender.com" target="_blank" class="text-indigo-600 underline">https://cartly-backend-02g1.onrender.com</a></p>
-        <p><strong>VAPI Tools Webhook:</strong> <code class="bg-slate-100 p-1 rounded">https://cartly-backend-02g1.onrender.com/vapi/tools</code></p>
-        <p><strong>Active Items in Database:</strong> <span id="db-active-count" class="font-bold text-slate-900">Loading...</span></p>
-        <div class="mt-4 flex gap-2">
-          <a href="https://cartly-backend-02g1.onrender.com/items" target="_blank" class="flex-1 rounded-lg bg-indigo-50 text-indigo-700 p-2 text-center font-semibold hover:bg-indigo-100">View Raw Database Items (JSON)</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Voice Call Overlay (VAPI Assistant Call) -->
   <div id="vapi-modal" class="hidden fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-6 sm:items-center sm:pb-0">
     <div class="w-full max-w-sm rounded-2xl border border-indigo-100 bg-white p-5 text-center shadow-2xl">
@@ -214,13 +195,13 @@
           🎙️
         </span>
       </div>
-      <p id="vapi-status-text" class="text-xs font-semibold uppercase tracking-wide text-indigo-500">Connecting to VAPI Assistant…</p>
-      <p id="vapi-subtext" class="mt-2 text-sm text-slate-800 font-medium">Assistant ID: a6ef1750-410a-4cd9-a8e3-063bae010025</p>
+      <p id="vapi-status-text" class="text-xs font-semibold uppercase tracking-wide text-indigo-500">Connecting to Voice Assistant…</p>
+      <p id="vapi-subtext" class="mt-2 text-sm text-slate-800 font-medium">Cartly Assistant Active</p>
       <button
         onclick="endVapiCall()"
         class="mt-4 rounded-full bg-red-600 px-5 py-2 text-xs font-bold text-white hover:bg-red-700"
       >
-        🔴 End VAPI Call
+        🔴 End Voice Call
       </button>
     </div>
   </div>
@@ -244,15 +225,15 @@
         vapiInstance.on("call-start", () => {
           isVapiCallActive = true;
           document.getElementById("vapi-modal").classList.remove("hidden");
-          document.getElementById("vapi-status-text").innerText = "Cartly VAPI Call Active 🟢";
+          document.getElementById("vapi-status-text").innerText = "Cartly Voice Call Active 🟢";
           document.getElementById("vapi-status-icon").className = "relative flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white text-2xl";
-          showToast("VAPI Voice Call Connected! Speak now.", false);
+          showToast("Voice Call Connected! Speak now.", false);
         });
 
         vapiInstance.on("call-end", () => {
           isVapiCallActive = false;
           document.getElementById("vapi-modal").classList.add("hidden");
-          showToast("VAPI Voice Call Ended.", false);
+          showToast("Voice Call Ended.", false);
           fetchBackendItems();
         });
 
@@ -272,15 +253,9 @@
       }
     }
 
-    function toggleDbModal(open) {
-      const el = document.getElementById("db-modal-backdrop");
-      if (open) el.classList.remove("hidden");
-      else el.classList.add("hidden");
-    }
-
     function startVapiCall() {
       document.getElementById("vapi-modal").classList.remove("hidden");
-      document.getElementById("vapi-status-text").innerText = "Connecting to VAPI Assistant…";
+      document.getElementById("vapi-status-text").innerText = "Connecting to Voice Assistant…";
       
       let publicKey = localStorage.getItem("vapi_public_key");
       if (!publicKey) {
@@ -393,8 +368,6 @@
         const res = await fetch(`${BACKEND_URL}/items`);
         if (res.ok) {
           const data = await res.json();
-          document.getElementById("backend-status-bar").innerHTML = "✨ Say it, and it's on your list — powered by Cartly 🟢 (Render Cloud Backend Connected)";
-          document.getElementById("db-active-count").innerText = `${data.count || 0} active items`;
           cart = {};
           (data.items || []).forEach(item => {
             const matched = PRODUCTS.find(p => p.name.toLowerCase() === item.itemName.toLowerCase());
@@ -403,9 +376,7 @@
           renderProducts();
           renderCartDrawer();
         }
-      } catch (e) {
-        document.getElementById("backend-status-bar").innerHTML = "✨ Say it, and it's on your list — powered by Cartly 🟡 (Local Mode)";
-      }
+      } catch (e) {}
     }
 
     async function addToCart(id, qty = 1, label) {
@@ -556,11 +527,11 @@
         badge.classList.add("hidden");
       }
 
-      document.getElementById("cart-drawer-title").innerText = `Your list (${totalCount})`;
+      document.getElementById("cart-drawer-title").innerText = `Your List (${totalCount})`;
 
       const container = document.getElementById("cart-items-container");
       if (totalCount === 0) {
-        container.innerHTML = `<p class="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap the mic to talk to VAPI Assistant!</p>`;
+        container.innerHTML = `<p class="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap the mic to speak to your assistant!</p>`;
         document.getElementById("cart-total-price").innerText = "$0.00";
         return;
       }
@@ -604,7 +575,7 @@
     fetchBackendItems();
     initVapiSDK();
 
-    // Auto-poll live database every 4 seconds to sync voice additions instantly
+    // Auto-poll live database every 4 seconds to sync voice additions
     setInterval(fetchBackendItems, 4000);
   </script>
 </body>

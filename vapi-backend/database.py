@@ -1,7 +1,7 @@
 import datetime as dt
 import re
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Index, Integer, String, create_engine
+from sqlalchemy import Boolean, Column, DateTime, Float, Index, Integer, String, create_engine, text
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 DATABASE_URL = "sqlite:///./cartly_shopping_db.db"
@@ -60,7 +60,32 @@ class ShoppingItem(Base):
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
-    # Seed initial items if database table is completely empty
+    
+    # Automatic column migration for existing SQLite databases
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("PRAGMA table_info(shopping_items)")).fetchall()
+            col_names = {row[1] for row in result}
+            
+            if "session_id" not in col_names:
+                conn.execute(text("ALTER TABLE shopping_items ADD COLUMN session_id VARCHAR DEFAULT 'default'"))
+            if "normalized_name" not in col_names:
+                conn.execute(text("ALTER TABLE shopping_items ADD COLUMN normalized_name VARCHAR DEFAULT ''"))
+            if "updated_at" not in col_names:
+                conn.execute(text("ALTER TABLE shopping_items ADD COLUMN updated_at DATETIME"))
+            if "canceled_at" not in col_names:
+                conn.execute(text("ALTER TABLE shopping_items ADD COLUMN canceled_at DATETIME"))
+            if "checked" not in col_names:
+                conn.execute(text("ALTER TABLE shopping_items ADD COLUMN checked BOOLEAN DEFAULT 0"))
+            if "canceled" not in col_names:
+                conn.execute(text("ALTER TABLE shopping_items ADD COLUMN canceled BOOLEAN DEFAULT 0"))
+            if "max_price" not in col_names:
+                conn.execute(text("ALTER TABLE shopping_items ADD COLUMN max_price FLOAT"))
+            conn.commit()
+    except Exception as e:
+        print(f"Migration notice: {e}")
+
+    # Seed initial items if database table is empty
     db = SessionLocal()
     try:
         count = db.query(ShoppingItem).count()

@@ -461,13 +461,13 @@ async def vapi_tools(request: Request, db: Session = Depends(get_db), _auth=Depe
 
 def to_dto(item: ShoppingItem) -> dict:
     return {
-        "id": item.id,
-        "itemName": item.name,
-        "quantity": item.quantity,
-        "unit": item.unit or "",
-        "category": item.category,
-        "maxPrice": item.max_price,
-        "checked": item.checked,
+        "id": getattr(item, "id", 0),
+        "itemName": getattr(item, "name", ""),
+        "quantity": getattr(item, "quantity", 1.0) or 1.0,
+        "unit": getattr(item, "unit", "") or "",
+        "category": getattr(item, "category", "Other") or "Other",
+        "maxPrice": getattr(item, "max_price", None),
+        "checked": bool(getattr(item, "checked", False)),
     }
 
 
@@ -486,8 +486,18 @@ def root():
 @app.get("/list_items")
 @app.get("/items")
 def get_items(session_id: str = "default", db: Session = Depends(get_db)):
-    items = _active_query(db, session_id).order_by(ShoppingItem.category).all()
-    return {"count": len(items), "items": [to_dto(i) for i in items]}
+    try:
+        items = _active_query(db, session_id).order_by(ShoppingItem.category).all()
+        return {"count": len(items), "items": [to_dto(i) for i in items]}
+    except Exception as e:
+        logger.exception("Database query error in get_items, attempting auto-repair: %s", str(e))
+        db.rollback()
+        try:
+            init_db()
+            items = _active_query(db, session_id).order_by(ShoppingItem.category).all()
+            return {"count": len(items), "items": [to_dto(i) for i in items]}
+        except Exception:
+            return {"count": 0, "items": []}
 
 
 @app.get("/replenishment")
