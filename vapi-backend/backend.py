@@ -607,11 +607,14 @@ async def call_tool_route(
     if request.method == "POST":
         try:
             raw_body = await request.body()
-            WEBHOOK_LOGS.append(f"/{tool_name} " + raw_body.decode("utf-8"))
+            WEBHOOK_LOGS.append(f"POST /{tool_name} " + raw_body.decode("utf-8"))
             if len(WEBHOOK_LOGS) > 10: WEBHOOK_LOGS.pop(0)
             body = json.loads(raw_body)
         except Exception:
             body = {}
+    elif request.method == "GET":
+        WEBHOOK_LOGS.append(f"GET /{tool_name}?{request.query_params}")
+        if len(WEBHOOK_LOGS) > 10: WEBHOOK_LOGS.pop(0)
 
     # Check if incoming request is a VAPI envelope structure
     if isinstance(body, dict) and "message" in body and isinstance(body["message"], dict):
