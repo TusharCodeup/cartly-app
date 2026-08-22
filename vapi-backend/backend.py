@@ -189,8 +189,37 @@ class AvailabilityArgs(BaseModel):
 # `result` not be an object/array and contain no line breaks.
 # -------------------------------------------------------------
 
-def _active_query(db: Session, session_id: str):
+def _active_query(db: Session, session_id: str = "default"):
+    if not session_id or session_id in ["default", "all"]:
+        return db.query(ShoppingItem).filter(ShoppingItem.canceled == False)
     return db.query(ShoppingItem).filter(ShoppingItem.session_id == session_id, ShoppingItem.canceled == False)
+
+
+def extract_tool_calls(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    message = payload.get("message", {}) or {}
+    raw_calls = message.get("toolCallList") or message.get("toolCalls") or []
+
+    calls = []
+    for raw in raw_calls:
+        call_id = raw.get("id")
+        fn = raw.get("function") or {}
+        name = fn.get("name") or raw.get("name")
+        args = fn.get("arguments", None)
+        if args is None:
+            args = raw.get("arguments", {})
+        if isinstance(args, str):
+            try:
+                args = json.loads(args)
+            except json.JSONDecodeError:
+                args = {}
+        calls.append({"id": call_id, "name": name, "arguments": args or {}})
+    return calls
+
+
+def get_session_id(payload: Dict[str, Any]) -> str:
+    """Share the 'default' session across web app and VAPI assistant calls
+    so all voice-added items show up in the web cart list immediately."""
+    return "default"
 
 
 def handle_add_item(db: Session, session_id: str, args: dict) -> str:
@@ -378,48 +407,7 @@ TOOL_HANDLERS = {
 }
 
 
-# -------------------------------------------------------------
-# VAPI envelope handling
-# -------------------------------------------------------------
 
-def extract_tool_calls(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """VAPI's schema has had more than one shape in the wild (toolCallList vs
-    the older toolCalls; arguments nested under .function vs flattened; and
-    arguments arriving as either a dict or a JSON-encoded string). Handle
-    all of them rather than assuming one -- log a raw payload from your own
-    dashboard's test call once and confirm which shape you're actually on."""
-    message = payload.get("message", {}) or {}
-    raw_calls = message.get("toolCallList") or message.get("toolCalls") or []
-
-    calls = []
-    for raw in raw_calls:
-        call_id = raw.get("id")
-        fn = raw.get("function") or {}
-        name = fn.get("name") or raw.get("name")
-        args = fn.get("arguments", None)
-        if args is None:
-            args = raw.get("arguments", {})
-        if isinstance(args, str):
-            try:
-                args = json.loads(args)
-            except json.JSONDecodeError:
-                args = {}
-        calls.append({"id": call_id, "name": name, "arguments": args or {}})
-    return calls
-
-
-def get_session_id(payload: Dict[str, Any]) -> str:
-    """Every VAPI call carries a stable call id in message.call.id -- use it
-    to scope the list per caller automatically, without relying on the LLM
-    to remember to pass a session id as a tool argument."""
-    message = payload.get("message", {}) or {}
-    call = message.get("call") or {}
-    if call.get("id"):
-        return str(call["id"])
-    customer = message.get("customer") or {}
-    if customer.get("number"):
-        return f"phone:{customer['number']}"
-    return "default"
 
 
 @app.post("/vapi/tools")

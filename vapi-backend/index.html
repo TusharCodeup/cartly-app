@@ -422,6 +422,7 @@
     let partialEl = null;
 
     function addTranscriptBubble(role, text) {
+      // Remove partial bubble if exists
       if (partialEl) { partialEl.remove(); partialEl = null; }
 
       const container = document.getElementById("vapi-transcript");
@@ -540,52 +541,85 @@
     }
 
     // ─── Backend Sync ─────────────────────────────────────────
+    let dbItems = [];
+
     async function fetchBackendItems() {
       try {
         const res = await fetch(`${BACKEND_URL}/items`);
         if (res.ok) {
           const data = await res.json();
+          dbItems = data.items || [];
           cart = {};
-          (data.items || []).forEach(item => {
-            const matched = PRODUCTS.find(p => p.name.toLowerCase() === (item.itemName || "").toLowerCase());
-            if (matched) cart[matched.id] = item.quantity;
+          dbItems.forEach(item => {
+            const matched = PRODUCTS.find(p => p.name.toLowerCase() === (item.itemName || "").toLowerCase() || (item.itemName || "").toLowerCase().includes(p.name.toLowerCase()));
+            if (matched) {
+              cart[matched.id] = (cart[matched.id] || 0) + item.quantity;
+            }
           });
           renderProducts();
           renderCartDrawer();
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error("fetchBackendItems error:", e);
+      }
     }
 
     async function addToCart(id, qty = 1, label) {
       const prod = byId[id];
       const itemName = label || prod?.name || id;
-      cart[id] = (cart[id] || 0) + qty;
-      renderProducts();
-      renderCartDrawer();
       showToast(`Added ${itemName} to your list`);
       try {
         await fetch(`${BACKEND_URL}/add_item`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itemName, quantity: qty, unit: prod ? prod.unit : "", category: prod ? catMap[prod.category]?.label : "Other", maxPrice: prod ? prod.price : null })
+          body: JSON.stringify({
+            itemName: itemName,
+            quantity: qty,
+            unit: prod ? prod.unit : "",
+            category: prod ? (catMap[prod.category]?.label || "Other") : "Other",
+            maxPrice: prod ? prod.price : null
+          })
         });
+        await fetchBackendItems();
+      } catch(e) {}
+    }
+
+    async function updateDbItemQty(itemName, newQty) {
+      if (newQty <= 0) {
+        await removeDbItem(itemName);
+      } else {
+        showToast(`Updated ${itemName} to ${newQty}`);
+        try {
+          await fetch(`${BACKEND_URL}/add_item`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ itemName, quantity: 1 })
+          });
+          await fetchBackendItems();
+        } catch(e) {}
+      }
+    }
+
+    async function removeDbItem(itemName) {
+      showToast(`Removed ${itemName} from your list`);
+      try {
+        await fetch(`${BACKEND_URL}/cancel_item`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemName })
+        });
+        await fetchBackendItems();
       } catch(e) {}
     }
 
     async function setQty(id, qty) {
       const prod = byId[id];
+      if (!prod) return;
       if (qty <= 0) {
-        delete cart[id];
-        if (prod) {
-          showToast(`Removed ${prod.name} from your list`);
-          try { await fetch(`${BACKEND_URL}/cancel_item`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itemName: prod.name }) }); } catch(e) {}
-        }
+        await removeDbItem(prod.name);
       } else {
-        cart[id] = qty;
-        if (prod) showToast(`Updated ${prod.name} to ${qty}`);
+        await updateDbItemQty(prod.name, qty);
       }
-      renderProducts();
-      renderCartDrawer();
     }
 
     function toggleCartDrawer(open) {
@@ -654,38 +688,46 @@
     }
 
     function renderCartDrawer() {
-      const totalCount = Object.values(cart).reduce((a, b) => a + b, 0);
+      const totalCount = dbItems.reduce((acc, item) => acc + (parseFloat(item.quantity) || 1), 0);
       const badge = document.getElementById("cart-badge");
-      badge.innerText = totalCount;
-      badge.classList.toggle("hidden", totalCount === 0);
-      badge.classList.toggle("flex", totalCount > 0);
-      document.getElementById("cart-drawer-title").innerText = `Your List (${totalCount})`;
+      badge.innerText = Math.round(totalCount);
+      badge.classList.toggle("hidden", dbItems.length === 0);
+      badge.classList.toggle("flex", dbItems.length > 0);
+      document.getElementById("cart-drawer-title").innerText = `Your List (${dbItems.length})`;
+      
       const container = document.getElementById("cart-items-container");
-      if (!totalCount) {
+      if (!dbItems.length) {
         container.innerHTML = `<p class="mt-8 text-center text-sm text-slate-400">Your list is empty. Tap 🎙️ to talk to Cartly!</p>`;
         document.getElementById("cart-total-price").innerText = "$0.00";
         return;
       }
-      let totalPrice = 0, html = "";
-      Object.entries(cart).forEach(([id, qty]) => {
-        const p = byId[id]; if (!p) return;
-        const cat = catMap[p.category];
-        totalPrice += p.price * qty;
+      
+      let totalPrice = 0;
+      let html = "";
+      dbItems.forEach((item) => {
+        const matchedProd = PRODUCTS.find(p => p.name.toLowerCase() === (item.itemName || "").toLowerCase() || (item.itemName || "").toLowerCase().includes(p.name.toLowerCase()));
+        const catId = (item.category || "other").toLowerCase();
+        const cat = catMap[catId] || CATEGORIES.find(c => c.label.toLowerCase() === catId) || { emoji: "🛒", tint: "bg-slate-100 text-slate-700" };
+        const price = item.maxPrice || (matchedProd ? matchedProd.price : 3.99);
+        const qty = parseFloat(item.quantity) || 1;
+        totalPrice += price * qty;
+        
         html += `
-          <div class="mb-3 flex items-center gap-3 rounded-lg border border-slate-100 p-2.5">
+          <div class="mb-3 flex items-center gap-3 rounded-lg border border-slate-100 p-2.5 bg-white shadow-sm">
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.tint} text-xl">${cat.emoji}</span>
             <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-semibold text-slate-800">${p.name}</p>
-              <p class="text-xs text-slate-400">$${p.price.toFixed(2)} · ${p.unit}</p>
+              <p class="truncate text-sm font-semibold text-slate-800">${item.itemName}</p>
+              <p class="text-xs text-slate-400">$${price.toFixed(2)}${item.unit ? ' · ' + item.unit : ''} · <span class="text-slate-500 font-medium">${item.category || 'Grocery'}</span></p>
             </div>
             <div class="flex items-center gap-1 rounded-full bg-slate-100 px-1">
-              <button onclick="setQty('${id}',${qty-1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
-              <span class="w-4 text-center text-xs font-semibold">${qty}</span>
-              <button onclick="setQty('${id}',${qty+1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">+</button>
+              <button onclick="updateDbItemQty('${item.itemName.replace(/'/g, "\\'")}', ${qty - 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">-</button>
+              <span class="w-5 text-center text-xs font-semibold">${qty}</span>
+              <button onclick="updateDbItemQty('${item.itemName.replace(/'/g, "\\'")}', ${qty + 1})" class="rounded-full p-1.5 text-slate-600 hover:bg-slate-200 font-bold">+</button>
             </div>
-            <button onclick="setQty('${id}',0)" class="text-slate-300 hover:text-red-500 font-bold ml-1">✕</button>
+            <button onclick="removeDbItem('${item.itemName.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-red-500 font-bold ml-1">✕</button>
           </div>`;
       });
+      
       container.innerHTML = html;
       document.getElementById("cart-total-price").innerText = `$${totalPrice.toFixed(2)}`;
     }
