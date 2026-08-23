@@ -474,6 +474,10 @@ async def vapi_tools(request: Request, db: Session = Depends(get_db), _auth=Depe
         return {"results": []}
 
     session_id = get_session_id(payload)
+    message = payload.get("message", {}) or {}
+    msg_type = message.get("type", "")
+
+    # --- Standard tool-call handling (function-type tools) ---
     calls = extract_tool_calls(payload)
 
     results = []
@@ -500,7 +504,86 @@ async def vapi_tools(request: Request, db: Session = Depends(get_db), _auth=Depe
             text = "Something went wrong on my end -- mind trying that again?"
         results.append({"toolCallId": call.get("id", "call_1"), "result": text})
 
+    if results:
+        return {"results": results}
+
+    # --- Fallback: extract tool calls from conversation-update / end-of-call-report ---
+    # Vapi apiRequest tools bypass /vapi/tools and call the tool URL directly.
+    # When those direct calls fail silently, we lose the data.
+    # This fallback scans the conversation for tool_calls the LLM generated
+    # and processes any items that aren't already in the DB.
+    if msg_type in ("conversation-update", "end-of-call-report"):
+        conversation = message.get("conversation", [])
+        # end-of-call-report may have conversation under "artifact"
+        if not conversation and msg_type == "end-of-call-report":
+            artifact = message.get("artifact", {})
+            conversation = artifact.get("messages", []) or artifact.get("conversation", [])
+        if conversation:
+            _process_conversation_tool_calls(db, session_id, conversation)
+
     return {"results": results}
+
+
+# --- Fallback: parse tool calls from conversation-update events ---
+# Vapi apiRequest tools call the tool URL directly (e.g., GET /add_item).
+# Those calls often fail silently (server cold-start timeout, etc.).
+# This function scans the conversation array for tool_calls the LLM generated
+# and processes items that aren't already in the DB.
+_PROCESSED_TOOL_CALL_IDS: set = set()
+
+def _process_conversation_tool_calls(db: Session, session_id: str, conversation: list):
+    """Scan a Vapi conversation array for tool_calls and process unprocessed ones."""
+    for msg in conversation:
+        if msg.get("role") != "assistant":
+            continue
+        tool_calls = msg.get("tool_calls") or msg.get("toolCalls") or []
+        for tc in tool_calls:
+            tc_id = tc.get("id", "")
+            if tc_id in _PROCESSED_TOOL_CALL_IDS:
+                continue
+            _PROCESSED_TOOL_CALL_IDS.add(tc_id)
+            # Keep set bounded
+            if len(_PROCESSED_TOOL_CALL_IDS) > 500:
+                _PROCESSED_TOOL_CALL_IDS.clear()
+
+            fn = tc.get("function", {})
+            fn_name = fn.get("name", "")
+            raw_args = fn.get("arguments", "{}")
+            if isinstance(raw_args, str):
+                try:
+                    args = json.loads(raw_args)
+                except Exception:
+                    args = {}
+            else:
+                args = raw_args or {}
+
+            norm_args = normalize_arguments(args)
+            item_name = norm_args.get("itemName", "")
+            if not item_name or normalize_name(item_name) in INVALID_ITEM_NAMES:
+                continue
+
+            # Determine handler based on function name or action
+            action = str(norm_args.get("action", "")).lower()
+            handler = None
+            if action == "remove":
+                handler = handle_cancel_item
+            elif action == "clear":
+                handler = handle_clear_list
+            elif action in ("add", "") or "add" in fn_name.lower() or fn_name.upper() == "BASKET":
+                # Check if item already exists (to avoid duplicates from multiple conversation-updates)
+                norm = normalize_name(item_name)
+                existing = _active_query(db, session_id).filter(ShoppingItem.normalized_name == norm).first()
+                if existing:
+                    continue  # Already in DB, skip
+                handler = handle_add_item
+
+            if handler:
+                try:
+                    handler(db, session_id, norm_args)
+                    logger.info("Fallback: processed tool_call %s for item '%s'", tc_id, item_name)
+                except Exception:
+                    db.rollback()
+                    logger.exception("Fallback tool_call failed for %s", item_name)
 
 
 # -------------------------------------------------------------
